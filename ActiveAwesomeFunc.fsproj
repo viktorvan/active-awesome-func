@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <AzureFunctionsVersion></AzureFunctionsVersion>
+    <RootNamespace>active_awesome_func</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Fake.Api.Slack" Version="5.10.1" />
+    <PackageReference Include="FSharp.Data" Version="3.0.1" />
+    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="1.0.24" />
+    <PackageReference Include="NewtonSoft.json" Version="11.0.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="host.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="local.settings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="PostToSlack.fs" />
+  </ItemGroup>
+</Project>

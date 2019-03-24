@@ -1,0 +1,19 @@
+#!/bin/bash
+
+RESOURCEGROUP_NAME=active-awesome
+STORAGE_NAME=activeawesomestorage
+LOCATION=westeurope
+SKU=Standard_LRS
+NAME=active-awesome-func
+WEBHOOK_URL=https://hooks.slack.com/services/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
+
+
+az group create --name $RESOURCEGROUP_NAME --location $LOCATION
+
+az storage account create --name $STORAGE_NAME --location $LOCATION --resource-group $RESOURCEGROUP_NAME --sku $SKU
+
+az functionapp create --resource-group $RESOURCEGROUP_NAME --consumption-plan-location $LOCATION --name $NAME --storage-account $STORAGE_NAME --runtime dotnet
+
+func azure functionapp publish $NAME
+
+az functionapp config appsettings set --name $NAME --resource-group $RESOURCEGROUP_NAME --settings WebhookUrl=$WEBHOOK_URL WEBSITE_RUN_FROM_PACKAGE=1
