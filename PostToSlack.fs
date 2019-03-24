@@ -8,7 +8,7 @@ open Fake.Api
 open System.IO
 open System
 
-type PushEvent = JsonProvider<"PushEvent.json">
+type PushEvent = JsonProvider<"PushEvent.json", EmbeddedResource="ActiveAwesomeFunc, PushEvent.json">
 
 module PostToSlack =
 
