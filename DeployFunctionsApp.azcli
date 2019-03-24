@@ -5,7 +5,7 @@ STORAGE_NAME=activeawesomestorage
 LOCATION=westeurope
 SKU=Standard_LRS
 NAME=active-awesome-func
-WEBHOOK_URL=https://hooks.slack.com/services/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
+WEBHOOK_URL=<secret>
 
 
 az group create --name $RESOURCEGROUP_NAME --location $LOCATION
