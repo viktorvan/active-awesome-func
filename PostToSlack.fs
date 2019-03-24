@@ -8,15 +8,17 @@ open Fake.Api
 open System.IO
 open System
 
-type PushEvent = JsonProvider<"PushEvent.json", EmbeddedResource="ActiveAwesomeFunc, ActiveAwesomeFunc.PushEvent.json">
+type PushEventJson = JsonProvider<"PushEvent.json", EmbeddedResource="ActiveAwesomeFunc, ActiveAwesomeFunc.PushEvent.json">
+type PushEvent = PushEventJson.Root
 
 module PostToSlack =
 
-    let parseTipFromCommits (req: HttpRequest) =
+    let parsePushEvent (req:HttpRequest) =
         use stream = new StreamReader(req.Body)
         let json = stream.ReadToEndAsync() |> Async.AwaitTask |> Async.RunSynchronously
+        PushEventJson.Parse(json)
 
-        let pushEvent = PushEvent.Parse(json)
+    let parseTipText (pushEvent : PushEvent) =
         let repositoryUrl = pushEvent.Repository.FullName |> sprintf "https://github.com/%s"
         let author = pushEvent.Pusher.Name
         let commitMsg = 
@@ -32,20 +34,31 @@ module PostToSlack =
 
         buildTipText author commitMsg repositoryUrl
 
+    let slackNotificationBuilder text =
+        fun (p: Slack.NotificationParams) ->
+            { p with
+                Text = text
+                Channel = "#active-awesome-test"
+                IconEmoji = ":exclamation:" } 
+
+
     [<FunctionName("PostToSlack")>]
     let run
         ([<HttpTrigger(Extensions.Http.AuthorizationLevel.Anonymous, "post")>]
         req: HttpRequest) =
             let webhookUrl = Environment.GetEnvironmentVariable("WEBHOOK_URL", EnvironmentVariableTarget.Process)
-            match parseTipFromCommits req with
-            | Some text ->
-                Slack.sendNotification webhookUrl (fun p ->
-                    { p with
-                        Text = text
-                        Channel = "#active-awesome-test"
-                        IconEmoji = ":exclamation:"
-                    }) |> printfn "Result: %s"
+
+            let tipText =
+                req
+                |> parsePushEvent
+                |> parseTipText
+
+            match tipText with
             | None -> ()
+            | Some text ->
+                Slack.sendNotification webhookUrl (slackNotificationBuilder text) 
+                |> printf "Result: %s"
+
             ContentResult(Content = "Ok", ContentType = "text/html")
 
     
