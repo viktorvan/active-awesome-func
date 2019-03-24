@@ -16,4 +16,5 @@ az functionapp create --resource-group $RESOURCEGROUP_NAME --consumption-plan-lo
 
 func azure functionapp publish $NAME
 
-az functionapp config appsettings set --name $NAME --resource-group $RESOURCEGROUP_NAME --settings WebhookUrl=$WEBHOOK_URL WEBSITE_RUN_FROM_PACKAGE=1
+az functionapp config appsettings set --name $NAME --resource-group $RESOURCEGROUP_NAME --settings WEBHOOK_URL=$WEBHOOK_URL
+az functionapp config appsettings set --name $NAME --resource-group $RESOURCEGROUP_NAME --settings WEBSITE_RUN_FROM_PACKAGE=1
