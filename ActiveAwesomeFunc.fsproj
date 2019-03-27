@@ -20,7 +20,9 @@
         </None>
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="CreateGitHubIssue.fs" />
         <Compile Include="PostToSlack.fs" />
+        <Compile Include="Functions.fs" />
     </ItemGroup>
     <ItemGroup>
         <Content Include="PushEvent.json" />

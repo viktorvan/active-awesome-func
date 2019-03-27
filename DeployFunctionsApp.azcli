@@ -6,6 +6,8 @@ LOCATION=westeurope
 SKU=Standard_LRS
 NAME=active-awesome-func
 WEBHOOK_URL=<secret>
+GITHUB_USERNAME=<secret>
+GITHUB_PASSWORD=<secret>
 
 
 az group create --name $RESOURCEGROUP_NAME --location $LOCATION
@@ -17,4 +19,6 @@ az functionapp create --resource-group $RESOURCEGROUP_NAME --consumption-plan-lo
 func azure functionapp publish $NAME
 
 az functionapp config appsettings set --name $NAME --resource-group $RESOURCEGROUP_NAME --settings WEBHOOK_URL=$WEBHOOK_URL
+az functionapp config appsettings set --name $NAME --resource-group $RESOURCEGROUP_NAME --settings GITHUB_USERNAME=$GITHUB_USERNAME
+az functionapp config appsettings set --name $NAME --resource-group $RESOURCEGROUP_NAME --settings GITHUB_PASSWORD=$GITHUB_PASSWORD
 az functionapp config appsettings set --name $NAME --resource-group $RESOURCEGROUP_NAME --settings WEBSITE_RUN_FROM_PACKAGE=1

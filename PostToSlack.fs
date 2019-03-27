@@ -1,17 +1,14 @@
 namespace ActiveAwesomeFunctions
 
-open Microsoft.Azure.WebJobs
 open Microsoft.AspNetCore.Http
-open Microsoft.AspNetCore.Mvc
 open FSharp.Data
 open Fake.Api
 open System.IO
 open System
 
-type PushEventJson = JsonProvider<"PushEvent.json", EmbeddedResource="ActiveAwesomeFunc, ActiveAwesomeFunc.PushEvent.json">
-type PushEvent = PushEventJson.Root
-
 module PostToSlack =
+    type PushEventJson = JsonProvider<"PushEvent.json", EmbeddedResource="ActiveAwesomeFunc, ActiveAwesomeFunc.PushEvent.json">
+    type PushEvent = PushEventJson.Root
 
     let parsePushEvent (req:HttpRequest) =
         use stream = new StreamReader(req.Body)
@@ -42,28 +39,16 @@ module PostToSlack =
                 IconEmoji = ":exclamation:" } 
 
 
-    [<FunctionName("PostToSlack")>]
-    let run
-        ([<HttpTrigger(Extensions.Http.AuthorizationLevel.Anonymous, "post")>]
-        req: HttpRequest) =
-            let webhookUrl = Environment.GetEnvironmentVariable("WEBHOOK_URL", EnvironmentVariableTarget.Process)
+    let run (req: HttpRequest) =
+        let webhookUrl = Environment.GetEnvironmentVariable("WEBHOOK_URL", EnvironmentVariableTarget.Process)
 
-            let tipText =
-                req
-                |> parsePushEvent
-                |> parseTipText
+        let tipText =
+            req
+            |> parsePushEvent
+            |> parseTipText
 
-            match tipText with
-            | None -> ()
-            | Some text ->
-                Slack.sendNotification webhookUrl (slackNotificationBuilder text) 
-                |> printf "Result: %s"
-
-            ContentResult(Content = "Ok", ContentType = "text/html")
-
-    
-    [<FunctionName("Alive")>]
-    let runAlive
-        ([<HttpTrigger(Extensions.Http.AuthorizationLevel.Anonymous, "get")>]
-        req: HttpRequest) =
-            ContentResult(Content = "Ok", ContentType = "text/html")
+        match tipText with
+        | None -> None
+        | Some text ->
+            Slack.sendNotification webhookUrl (slackNotificationBuilder text) 
+            |> Some
