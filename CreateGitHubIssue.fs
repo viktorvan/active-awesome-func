@@ -13,7 +13,7 @@ open System
 module CreateGitHubIssue =
 
     type SlackPayload =
-        { Text: string
+        { Url: string
           Username: string
           ResponseUrl: string }
 
@@ -33,11 +33,12 @@ module CreateGitHubIssue =
     """
 
     type GitHubIssue = JsonProvider<issueSample, RootName="issue">
-
     type GitHubCreateIssueResponseJson = JsonProvider<"GitHubCreateIssueResponse.json", EmbeddedResource="ActiveAwesomeFunc, ActiveAwesomeFunc.GitHubCreateIssueResponse.json">
     type GitHubCreateIssueResponse = GitHubCreateIssueResponseJson.Root
+    type Attachment = { text: string }
+    type SlackResponse = { response_type: string; text: string; attachments: Attachment [] }
 
-    let buildIssueJson username text = 
+    let buildIssueJson username url = 
         let title = sprintf "Please add this tip to the awesome collection on behalf of %s" username
         let fullText = 
             sprintf """Add the following tip in a suitable place:
@@ -46,7 +47,7 @@ module CreateGitHubIssue =
             and use the following commit message:
             
             tip:%s added a tip to active-awesome: %s
-            """ text username text
+            """ url username url
         GitHubIssue.Issue(title, fullText, [||], 0, [| |]).JsonValue.ToString()
         
 
@@ -54,7 +55,7 @@ module CreateGitHubIssue =
         use stream = new StreamReader(req.Body)
         let str = stream.ReadToEndAsync() |> Async.AwaitTask |> Async.RunSynchronously
         let query = HttpUtility.ParseQueryString str
-        { Text = query.["text"]
+        { Url = query.["text"]
           Username = query.["user_name"]
           ResponseUrl = query.["response_url"] }
 
@@ -65,11 +66,17 @@ module CreateGitHubIssue =
     let username = Environment.GetEnvironmentVariable("GITHUB_USERNAME", EnvironmentVariableTarget.Process)
     let password = Environment.GetEnvironmentVariable("GITHUB_PASSWORD", EnvironmentVariableTarget.Process)
 
+
+    let buildResponse url =
+        { response_type = "in_channel"
+          text = "Ok, I've created a new issue for that:"
+          attachments = [| { text = url } |] }
+
     let run
         ([<HttpTrigger(Extensions.Http.AuthorizationLevel.Anonymous, "post")>]
         req: HttpRequest) =
             let payload = parseSlackData req
-            let newIssue = buildIssueJson payload.Username payload.Text
+            let newIssue = buildIssueJson payload.Username payload.Url
 
             let response = Http.RequestString
                               ( "https://api.github.com/repos/viktorvan/active-awesome/issues", 
@@ -79,7 +86,7 @@ module CreateGitHubIssue =
             response
             |> GitHubCreateIssueResponseJson.Parse
             |> fun (r:GitHubCreateIssueResponse) -> r.HtmlUrl
-            |> sprintf "Ok, I've created a new issue for that:\n%s"
+            |> buildResponse 
             |> Ok
 
     
