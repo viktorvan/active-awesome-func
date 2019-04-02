@@ -3,33 +3,39 @@ namespace ActiveAwesomeFunctions
 open Microsoft.AspNetCore.Http
 open FSharp.Data
 open Fake.Api
-open System.IO
+open ActiveAwesomeFunc.HttpRequestHelper
 open System
 
 module PostToSlack =
     type PushEventJson = JsonProvider<"PushEvent.json", EmbeddedResource="ActiveAwesomeFunc, ActiveAwesomeFunc.PushEvent.json">
     type PushEvent = PushEventJson.Root
 
-    let parsePushEvent (req:HttpRequest) =
-        use stream = new StreamReader(req.Body)
-        let json = stream.ReadToEndAsync() |> Async.AwaitTask |> Async.RunSynchronously
-        PushEventJson.Parse(json)
+    let parsePushEvent (req:HttpRequest) : Async<PushEvent> =
+        async {
+            let! json = req |> bodyAsString
+            return PushEventJson.Parse(json)
+        }
 
     let parseTipText (pushEvent : PushEvent) =
         let repositoryUrl = pushEvent.Repository.FullName |> sprintf "https://github.com/%s"
-        let author = pushEvent.Pusher.Name
         let commitMsg = 
             pushEvent.Commits 
             |> Array.map (fun c -> c.Message) 
             |> Array.filter (fun msg -> msg.StartsWith("tip:")) 
             |> Array.tryLast 
 
-        let buildTipText author (msg:string option) repositoryUrl = 
+
+        let buildTipText (msg:string option) repositoryUrl = 
             match msg with
             | None -> None
-            | Some msg -> sprintf "New tip from %s!\n%s\n%s" author (msg.[ 4.. ]) repositoryUrl |> Some
+            | Some msg -> 
+                let split = msg.Split(';')
+                if Array.length split <> 2 then None
+                else 
+                    let tip, author = (split.[0].[ 4.. ]), split.[1]
+                    sprintf "New tip from @%s!\n%s\n%s" author tip repositoryUrl |> Some
 
-        buildTipText author commitMsg repositoryUrl
+        buildTipText commitMsg repositoryUrl
 
     let slackNotificationBuilder text =
         fun (p: Slack.NotificationParams) ->
@@ -38,17 +44,18 @@ module PostToSlack =
                 Channel = "#active-awesome-test"
                 IconEmoji = ":exclamation:" } 
 
-
     let run (req: HttpRequest) =
         let webhookUrl = Environment.GetEnvironmentVariable("WEBHOOK_URL", EnvironmentVariableTarget.Process)
 
-        let tipText =
-            req
-            |> parsePushEvent
-            |> parseTipText
+        async {
+            let! event =
+                req
+                |> parsePushEvent
 
-        match tipText with
-        | None -> None
-        | Some text ->
-            Slack.sendNotification webhookUrl (slackNotificationBuilder text) 
-            |> Some
+            return
+                match parseTipText event with
+                | None -> None
+                | Some text ->
+                    Slack.sendNotification webhookUrl (slackNotificationBuilder text) 
+                    |> Some
+        }

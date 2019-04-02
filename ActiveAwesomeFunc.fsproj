@@ -2,11 +2,13 @@
     <PropertyGroup>
         <TargetFramework>netcoreapp2.1</TargetFramework>
         <AzureFunctionsVersion></AzureFunctionsVersion>
-        <RootNamespace>active_awesome_func</RootNamespace>
+        <RootNamespace>ActiveAwesomeFunc</RootNamespace>
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="Fake.Api.Slack" Version="5.10.1" />
+        <PackageReference Include="Fake.Tools.Git" Version="5.12.6" />
         <PackageReference Include="FSharp.Data" Version="3.0.1" />
+        <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.Storage" Version="3.0.4" />
         <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="1.0.24" />
         <PackageReference Include="NewtonSoft.json" Version="11.0.2" />
     </ItemGroup>
@@ -20,6 +22,11 @@
         </None>
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="Async.fs" />
+        <Compile Include="HttpRequestHelper.fs" />
+        <Compile Include="Queue.fs" />
+        <Compile Include="Types.fs" />
+        <Compile Include="AddTip.fs" />
         <Compile Include="CreateGitHubIssue.fs" />
         <Compile Include="PostToSlack.fs" />
         <Compile Include="Functions.fs" />
