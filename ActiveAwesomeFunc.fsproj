@@ -2,9 +2,10 @@
     <PropertyGroup>
         <TargetFramework>netcoreapp2.1</TargetFramework>
         <AzureFunctionsVersion></AzureFunctionsVersion>
-        <RootNamespace>ActiveAwesomeFunc</RootNamespace>
+        <RootNamespace>ActiveAwesomeFunctions</RootNamespace>
     </PropertyGroup>
     <ItemGroup>
+        <PackageReference Include="Cvdm.ErrorHandling" Version="2.0.0" />
         <PackageReference Include="Fake.Api.Slack" Version="5.10.1" />
         <PackageReference Include="Fake.Tools.Git" Version="5.12.6" />
         <PackageReference Include="FSharp.Data" Version="3.0.1" />
@@ -23,12 +24,15 @@
     </ItemGroup>
     <ItemGroup>
         <Compile Include="Async.fs" />
-        <Compile Include="HttpRequestHelper.fs" />
-        <Compile Include="Queue.fs" />
+        <Compile Include="JsonHelper.fs" />
+        <Compile Include="Settings.fs" />
+        <Compile Include="Samples.fs" />
         <Compile Include="Types.fs" />
-        <Compile Include="AddTip.fs" />
+        <Compile Include="Queue.fs" />
         <Compile Include="CreateGitHubIssue.fs" />
-        <Compile Include="PostToSlack.fs" />
+        <Compile Include="RespondToSlack.fs" />
+        <Compile Include="CreateGitHubCommit.fs" />
+        <Compile Include="NotifySlack.fs" />
         <Compile Include="Functions.fs" />
     </ItemGroup>
     <ItemGroup>

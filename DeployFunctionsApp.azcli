@@ -6,7 +6,7 @@ QUEUE_NAME=active-awesome-tip-queue
 LOCATION=westeurope
 SKU=Standard_LRS
 NAME=active-awesome-func
-WEBHOOK_URL=https://hooks.slack.com/services/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
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/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
 GITHUB_USERNAME=active-awesome-slack
 GITHUB_PASSWORD=ALcFeTFjccnDoW2bbDVTurUJ
 

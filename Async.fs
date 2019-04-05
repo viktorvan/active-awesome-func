@@ -1,4 +1,4 @@
-namespace ActiveAwesomeFunc
+namespace ActiveAwesomeFunctions
 
 module Async =
     let bind fA xA = 
