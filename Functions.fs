@@ -3,18 +3,19 @@ namespace ActiveAwesomeFunctions
 open Microsoft.Azure.WebJobs
 open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Mvc
-open FSharp.Data
 open System.Web.Http
 open System
 open Microsoft.Extensions.Logging
 open ActiveAwesomeFunctions.JsonHelper
 open ActiveAwesomeFunctions
 
-type PushEventJson = JsonProvider<"PushEvent.json", EmbeddedResource="ActiveAwesomeFunctions, ActiveAwesomeFunctions.PushEvent.json">
-
-type PushEvent = PushEventJson.Root
 
 module Functions =
+
+    let gitHub = GitHub.gitHub Settings.gitHubIssueApi Settings.gitHubAuth
+    let slack = Slack.slack Settings.slackWebhookUrl Settings.gitHubRepoUrl
+    let queue = Queue.queue Settings.azureStorageConnectionString
+
     [<FunctionName("Status")>]
     let runStatus ([<HttpTrigger(Extensions.Http.AuthorizationLevel.Anonymous, "get")>] req: HttpRequest) =
         ContentResult(Content = "Ok", ContentType = "text/html")
@@ -27,72 +28,59 @@ module Functions =
     let runAddTip ([<HttpTrigger(Extensions.Http.AuthorizationLevel.Anonymous, "post")>] req: HttpRequest, log: ILogger) =
         asyncResult {
             let! tip = req |> Tip.fromHttpRequest
-            let! issueQueued = Queue.enqueueGitHubIssue tip
-            let! commitQueued = Queue.enqueueGitHubCommit tip
+            let! issueQueued = queue.EnqueueGitHubIssue tip
+            let! commitQueued = queue.EnqueueGitHubCommit tip
             match issueQueued, commitQueued with 
             | Ok _, Ok _ -> return ContentResult(Content = "Ok, adding your tip now...", ContentType = "text/plain") :> ActionResult
             | _ -> return InternalServerErrorResult() :> ActionResult
         } 
-        |> Async.map (Result.raiseError log "AddTip")
-        |> Async.StartAsTask
+        |> Async.runAsTaskT log "AddTip"
 
     [<FunctionName("CreateGitHubIssue")>]
     let runCreateGitHubIssue ([<QueueTrigger("active-awesome-github-issue")>] queueItem: string, log: ILogger) =
-        let parseIssueUrl (issue : GitHubCreateIssueResponse) =
-            issue.HtmlUrl
         asyncResult {
             let! tip = deserialize queueItem
-            let! issue = CreateGitHubIssue.execute Settings.gitHubIssueApi Settings.gitHubAuth tip
-            return! Queue.enqueueSlackResponse (tip, issue |> parseIssueUrl)
+            let! issueUrl = gitHub.CreateIssue tip
+            return! queue.EnqueueSlackResponse (tip, issueUrl)
         } 
-        |> Async.map (Result.raiseError log "CreateGitHubIssue")
-        |> Async.StartAsTask
+        |> Async.runAsTask log "CreateGitHubIssue"
 
     [<FunctionName("CreateGitHubCommit")>]
     let runCreateGitHubCommit ([<QueueTrigger("active-awesome-github-commit")>] queueItem: string, log: ILogger) =
         asyncResult {
             let! tip = deserialize queueItem
-            let username = tip.Username |> NotEmptyString.value
-            let url = tip.Url |> NotEmptyString.value
-            let! _ = CreateGitHubCommit.execute Settings.gitHubRepoUrl Settings.gitHubRepoUrlWithAuth tip 
-            let notification = sprintf "New tip from @%s!\n%s\n%s" username url Settings.gitHubRepoUrl
-            return! Queue.enqueueSlackNotification notification
+            let! _ = gitHub.AddCommit tip
+            let! notification = slack.ParseWebHookNotification tip
+            return! queue.EnqueueSlackNotification notification
         } 
-        |> Async.map (Result.raiseError log "CreateGitHubCommit") 
-        |> Async.StartAsTask 
+        |> Async.runAsTask log "CreateGitHubCommit"
 
     [<FunctionName("RespondToSlack")>] 
     let runRespondToSlack ([<QueueTrigger("active-awesome-slack-response")>] queueItem: string, log: ILogger) =
         asyncResult {
             let! (tip, issueUrl) = deserialize queueItem
-            let! _ = RespondToSlack.execute tip issueUrl
-            return ()
+            return! slack.RespondToSlack tip issueUrl
         } 
-        |> Async.map (Result.raiseError log "RespondToSlack") 
-        |> Async.StartAsTask 
+        |> Async.runAsTask log "RespondToSlack"
 
     [<FunctionName("GitHubWebHook")>]
     let runGitHubWebHook ([<HttpTrigger(Extensions.Http.AuthorizationLevel.Anonymous, "post")>] req: HttpRequest, log: ILogger) =
-        let parseNotification (event:PushEvent) =
-            event.Commits
-            |> Array.filter (fun (c:Commit) -> c.Message.StartsWith("tip:")) 
-            |> Array.tryLast 
-            |> Option.map (fun commit -> sprintf "New tip from @%s!\n%s\n%s" commit.Author.Name commit.Message Settings.gitHubRepoUrl)
 
         asyncResult {
-            let! pushEvent = PushEvent.fromHttpRequest req
-            let notification = parseNotification pushEvent
+            let! json = HttpRequest.bodyAsString req 
+            let! notification = gitHub.ParseWebHookNotification json
             let! _ =
                 match notification with
-                | Some n -> Queue.enqueueSlackNotification n 
+                | Some n -> n |> queue.EnqueueSlackNotification 
                 | None -> asyncResult { return () }
             return ContentResult(Content = "Ok", ContentType = "text/html")
         } 
-        |> Async.map (Result.raiseError log "GitHubWebHook")
-        |> Async.StartAsTask
+        |> Async.runAsTaskT log "GitHubWebHook"
 
     [<FunctionName("NotifySlack")>]
     let runNotifySlack ([<QueueTrigger("active-awesome-slack-notification")>] queueItem: string, log: ILogger) =
-        NotifySlack.execute queueItem 
-        |> Result.raiseError log "NotifySlack"
-        |> ignore
+        asyncResult {
+            let! notification = queueItem |> deserialize
+            return! slack.SendSlackNotification notification
+        }
+        |> Async.runAsTask log "NotifySlack"

@@ -4,9 +4,14 @@ open Microsoft.WindowsAzure.Storage
 open Microsoft.WindowsAzure.Storage.Queue
 open ActiveAwesomeFunctions.JsonHelper
 
+type Queue =
+    { EnqueueGitHubIssue: Tip -> Async<Result<unit, string>> 
+      EnqueueGitHubCommit: Tip -> Async<Result<unit, string>> 
+      EnqueueSlackResponse: Tip * IssueUrl -> Async<Result<unit, string>> 
+      EnqueueSlackNotification: NotEmptyString -> Async<Result<unit, string>> }
 
-let private getQueue name =
-    let storageAccount = CloudStorageAccount.Parse(Settings.azureStorageConnectionString)
+let private getQueue azureStorageConnectionString name =
+    let storageAccount = CloudStorageAccount.Parse(azureStorageConnectionString)
     let queueClient = storageAccount.CreateCloudQueueClient()
     let queue = queueClient.GetQueueReference(name)
     async {
@@ -14,10 +19,10 @@ let private getQueue name =
         return queue
     }
 
-let enqueue name msg =
+let private enqueue azureStorageConnectionString name msg =
     asyncResult {
         try 
-            let! queue = getQueue name
+            let! queue = getQueue azureStorageConnectionString name
             return! 
                 msg
                 |> CloudQueueMessage
@@ -27,33 +32,40 @@ let enqueue name msg =
             | exn -> return! exn.ToString() |> Error
     }
 
-let enqueueGitHubIssue tip =
+let private enqueueGitHubIssue azureStorageConnectionString tip =
     async {
         return!
             tip 
             |> serialize
-            |> enqueue "active-awesome-github-issue"
+            |> enqueue azureStorageConnectionString "active-awesome-github-issue"
     }
 
-let enqueueGitHubCommit tip =
+let private enqueueGitHubCommit azureStorageConnectionString tip =
     async {
         return!
             tip 
             |> serialize
-            |> enqueue "active-awesome-github-commit"
+            |> enqueue azureStorageConnectionString "active-awesome-github-commit"
     }
 
-let enqueueSlackResponse item =
+let private enqueueSlackResponse azureStorageConnectionString item =
     async {
         return!
             item
             |> serialize
-            |> enqueue "active-awesome-slack-response"
+            |> enqueue azureStorageConnectionString "active-awesome-slack-response"
     }
 
-let enqueueSlackNotification item =
+let private enqueueSlackNotification azureStorageConnectionString item =
     async {
         return!
             item
-            |> enqueue "active-awesome-slack-notification"
+            |> serialize
+            |> enqueue azureStorageConnectionString "active-awesome-slack-notification"
     }
+
+let queue azureStorageConnectionString =
+    { EnqueueGitHubIssue = enqueueGitHubIssue azureStorageConnectionString
+      EnqueueGitHubCommit = enqueueGitHubCommit azureStorageConnectionString 
+      EnqueueSlackResponse = enqueueSlackResponse azureStorageConnectionString
+      EnqueueSlackNotification = enqueueSlackNotification azureStorageConnectionString }

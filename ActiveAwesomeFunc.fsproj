@@ -9,6 +9,7 @@
         <PackageReference Include="Fake.Api.Slack" Version="5.10.1" />
         <PackageReference Include="Fake.Tools.Git" Version="5.12.6" />
         <PackageReference Include="FSharp.Data" Version="3.0.1" />
+        <PackageReference Include="FSharpPlus" Version="1.0.0" />
         <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.Storage" Version="3.0.4" />
         <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="1.0.24" />
         <PackageReference Include="NewtonSoft.json" Version="11.0.2" />
@@ -23,16 +24,14 @@
         </None>
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="Async.fs" />
         <Compile Include="JsonHelper.fs" />
-        <Compile Include="Settings.fs" />
         <Compile Include="Samples.fs" />
         <Compile Include="Types.fs" />
+        <Compile Include="Async.fs" />
+        <Compile Include="Settings.fs" />
+        <Compile Include="GitHub.fs" />
+        <Compile Include="Slack.fs" />
         <Compile Include="Queue.fs" />
-        <Compile Include="CreateGitHubIssue.fs" />
-        <Compile Include="RespondToSlack.fs" />
-        <Compile Include="CreateGitHubCommit.fs" />
-        <Compile Include="NotifySlack.fs" />
         <Compile Include="Functions.fs" />
     </ItemGroup>
     <ItemGroup>

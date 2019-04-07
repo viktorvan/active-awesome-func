@@ -4,7 +4,6 @@ open System
 open Microsoft.AspNetCore.Http
 open System.IO
 open System.Web
-open FSharp.Data
 open Newtonsoft.Json
 
 [<JsonObject(MemberSerialization = MemberSerialization.Fields)>]
@@ -20,19 +19,25 @@ module NotEmptyString =
 
     let value (NotEmptyString str) = str
 
+type NotEmptyString with
+    member this.Value = NotEmptyString.value this
 
-module Internal =
+module HttpRequest =
     let bodyAsString (req: HttpRequest) =
         asyncResult {
             try 
                 use stream = new StreamReader(stream = req.Body)
-                return! stream.ReadToEndAsync() |> Async.AwaitTask 
+                let! bodyString = stream.ReadToEndAsync() |> Async.AwaitTask 
+                return! NotEmptyString.create "HttpRequest body string" bodyString
             with
                 | exn -> return! exn.ToString() |> Error
         }
-open Internal
-open Newtonsoft.Json
-open Microsoft.Extensions.Logging
+
+module HttpResponse =
+    let ensureSuccessStatusCode (response: FSharp.Data.HttpResponse) =
+        if response.StatusCode < 200 && response.StatusCode >= 300 then "HttpRequest failed" |> Error
+        else Ok ()
+
 
 type Tip =
     { Url: NotEmptyString
@@ -42,8 +47,8 @@ type Tip =
 module Tip =
     let fromHttpRequest (req:HttpRequest) =
         asyncResult {
-            let! bodyString = req |> bodyAsString
-            let query = HttpUtility.ParseQueryString bodyString
+            let! bodyString = req |> HttpRequest.bodyAsString
+            let query = bodyString |> NotEmptyString.value |> HttpUtility.ParseQueryString
             let! url =  query.["text"] |> NotEmptyString.create "url"
             let! username = query.["user_name"] |> NotEmptyString.create "username"
             let! responseUrl = query.["response_url"]  |> NotEmptyString.create "response_url"
@@ -53,31 +58,6 @@ module Tip =
                   SlackResponseUrl = responseUrl }
         }
 
-type GitHubIssue = JsonProvider<Samples.IssueSample, RootName="issue">
-type GitHubCreateIssueResponseJson = JsonProvider<"GitHubCreateIssueResponse.json", EmbeddedResource="ActiveAwesomeFunctions, ActiveAwesomeFunctions.GitHubCreateIssueResponse.json">
-type GitHubCreateIssueResponse = GitHubCreateIssueResponseJson.Root
-type Attachment = { text: string }
-type SlackResponse = { text: string; attachments: Attachment [] }
-
 type IssueUrl = NotEmptyString
 
-
-type PushEventJson = JsonProvider<"PushEvent.json", EmbeddedResource="ActiveAwesomeFunctions, ActiveAwesomeFunctions.PushEvent.json">
-type PushEvent = PushEventJson.Root
-type Commit = PushEventJson.Commit
-
-module PushEvent =
-    let fromHttpRequest (req:HttpRequest) : Async<Result<PushEvent, string>> =
-        asyncResult {
-            let! json = bodyAsString req
-            return PushEventJson.Parse json
-        }
-
 exception AwesomeFuncException of string
-
-module Result =
-    let raiseError (log: ILogger) functionName = function
-    | Ok r -> r
-    | Error e -> 
-        (functionName, e) ||> sprintf "%s failed with error %s" |> log.LogError
-        e |> AwesomeFuncException |> raise
