@@ -37,6 +37,7 @@ let respondToSlack tip issueUrl =
                    headers = [ ContentType HttpContentTypes.Json ],
                    body = TextRequest slackResponseJson)
                 |> Async.map HttpResponse.ensureSuccessStatusCode
+                |> Async.Ignore
         with
             | exn -> return! exn.ToString() |> Error
     }
@@ -54,6 +55,7 @@ let private sendSlackNotification slackWebHookUrl notification =
                    headers = [ ContentType HttpContentTypes.Json ],
                    body = TextRequest notificationJson)
                 |> Async.map HttpResponse.ensureSuccessStatusCode
+                |> Async.Ignore
         with
             | exn -> return! exn.ToString() |> Error
     }

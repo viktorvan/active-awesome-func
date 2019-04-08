@@ -10,7 +10,7 @@ open ActiveAwesomeFunctions.JsonHelper
 open ActiveAwesomeFunctions
 
 
-let gitHub = GitHub.gitHub Settings.gitHubIssueApi Settings.gitHubAuth
+let gitHub = GitHub.gitHub Settings.gitHubApiUrl Settings.gitHubAuth
 let slack = Slack.slack Settings.slackWebhookUrl Settings.gitHubRepoUrl
 let queue = Queue.queue Settings.azureStorageConnectionString
 

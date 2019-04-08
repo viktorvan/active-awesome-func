@@ -3,7 +3,12 @@ module ActiveAwesomeFunctions.GitHub
 open FSharp.Data
 open FSharp.Data.HttpRequestHeaders
 open FSharpPlus
+open Cvdm.ErrorHandling
 open System.IO
+open ActiveAwesomeFunctions
+open System
+open System.Text
+open Microsoft.AspNetCore.Http
 
 
 type GitHubIssue = JsonProvider<Samples.IssueSample, RootName="issue">
@@ -13,6 +18,12 @@ type GitHubCreateIssueResponse = GitHubCreateIssueResponseJson.Root
 type PushEventJson = JsonProvider<"PushEvent.json", EmbeddedResource="ActiveAwesomeFunctions, ActiveAwesomeFunctions.PushEvent.json">
 type PushEvent = PushEventJson.Root
 type Commit = PushEventJson.Commit
+
+type FileContentResponseJson = JsonProvider<Samples.ContentResponse>
+type FileContentResponse = FileContentResponseJson.Root
+type UpdateContentRequestJson = JsonProvider<Samples.UpdateContentRequest>
+type UpdateContentRequest = UpdateContentRequestJson.Root
+type Committer = UpdateContentRequestJson.Committer
 
 type GitHub =
     { CreateIssue: Tip -> Async<Result<IssueUrl, string>> 
@@ -26,10 +37,8 @@ let private buildIssueJson command =
     let fullText = sprintf "Add the following tip in a suitable place:\n%s (added by %s)\n" url username 
     GitHubIssue.Issue(title, fullText).JsonValue.ToString()
 
-let private parseIssueUrl (issue : GitHubCreateIssueResponse) =
-    issue.HtmlUrl
-
-let private createIssue gitHubIssueApi gitHubAuth tip =
+let private createIssue gitHubApiUrl gitHubAuth tip =
+    let gitHubIssueApi = sprintf "%s/issues" gitHubApiUrl
     asyncResult {
         try
             let json =
@@ -43,25 +52,30 @@ let private createIssue gitHubIssueApi gitHubAuth tip =
                             Authorization gitHubAuth
                             UserAgent "active-awesome-slack" ],
                       body = TextRequest json) 
-            let response = GitHubCreateIssueResponseJson.Parse jsonResponse
+            let! response = parseWith GitHubCreateIssueResponseJson.Parse jsonResponse
             return! response.HtmlUrl |> NotEmptyString.create "issueUrl"
         with
             | exn -> return! exn.ToString() |> Error
     }
 
 let private parseWebHookNotification json =
-    try
-        json 
-        |> NotEmptyString.value
-        |> PushEventJson.Parse 
-        |> fun event -> event.Commits
-        |> Array.filter (fun (c:Commit) -> c.Message.StartsWith("tip:")) 
-        |> Array.tryLast 
-        |> Option.map (fun commit -> sprintf "New tip from @%s!\n%s\n%s" commit.Author.Name commit.Message Settings.gitHubRepoUrl)
-        |> Option.map (fun str -> NotEmptyString.create "commit msg" str)
-        |> sequence
-    with
-        | exn -> exn.ToString() |> Error
+    result {
+        try
+            let! parsed = 
+                json
+                |> NotEmptyString.value
+                |> parseWith PushEventJson.Parse 
+            return!
+                parsed
+                |> fun event -> event.Commits
+                |> Array.filter (fun (c:Commit) -> c.Message.StartsWith("tip:")) 
+                |> Array.tryLast 
+                |> Option.map (fun commit -> sprintf "New tip from @%s!\n%s\n%s" commit.Author.Name commit.Message Settings.gitHubRepoUrl)
+                |> Option.map (fun str -> NotEmptyString.create "commit msg" str)
+                |> sequence
+        with
+            | exn -> return! exn.ToString() |> Error
+    }
 
 let private appendTipToFile path tipUrl tipUsername =
     asyncResult {
@@ -74,9 +88,70 @@ let private appendTipToFile path tipUrl tipUsername =
             | exn -> return! exn.ToString() |> Error
     }
 
-let private addCommit tip = failwith "not implemented"
+let private getFileFromRepo gitHubApiUrl gitHubAuth =
 
-let gitHub gitHubIssueApi gitHubAuth =
-    { CreateIssue = createIssue gitHubIssueApi gitHubAuth 
+    let bodyAsString response = 
+        match response.Body with
+        | Text text -> Ok text
+        | Binary _ -> Error "Expected text response"
+
+    let decodeBase64String file =
+        result {
+            try
+                return!
+                    file
+                    |> Convert.FromBase64String
+                    |> Encoding.UTF8.GetString
+                    |> NotEmptyString.create "decoded base64 github file content"
+            with
+                | exn -> return! exn.ToString() |> Error
+        }
+
+    asyncResult {
+        try
+            let! response = 
+                Http.AsyncRequest(
+                    gitHubApiUrl,
+                    headers = 
+                        [ Authorization gitHubAuth
+                          UserAgent "active-awesome-slack" ])
+                |> Async.map HttpResponse.ensureSuccessStatusCode
+            let! bodyJson = bodyAsString response
+            let! parsed = parseWith FileContentResponseJson.Parse bodyJson
+            let! content = parsed.Content |> decodeBase64String
+            let! fileSha = parsed.Sha |> NotEmptyString.create "File SHA"
+            return (content, fileSha) 
+        with
+            | exn -> return! exn.ToString() |> Error
+    }
+
+let private addCommit gitHubApiUrl gitHubAuth tip = 
+    let gitHubContentUrl = sprintf "%s/contents/%s" gitHubApiUrl "pending.Md"
+    let url = tip.Url |> NotEmptyString.value
+    let username = tip.Username |> NotEmptyString.value
+
+    asyncResult {
+        let! (content, sha) = getFileFromRepo gitHubContentUrl gitHubAuth 
+        let newContent =
+            content
+            |> NotEmptyString.value
+            |> (+) (sprintf "\n%s (added by %s)\n\n" url username)
+        let committer = Committer(username, "")
+        let json = UpdateContentRequest(url, committer, newContent, sha |> NotEmptyString.value).JsonValue.ToString()
+        return!
+            Http.AsyncRequest
+                ( gitHubContentUrl, 
+                  httpMethod = "PUT", 
+                  headers = 
+                      [ ContentType HttpContentTypes.Json 
+                        Authorization gitHubAuth
+                        UserAgent "active-awesome-slack" ],
+                  body = TextRequest json) 
+            |> Async.map HttpResponse.ensureSuccessStatusCode
+            |> Async.Ignore
+    }
+
+let gitHub gitHubApiUrl gitHubAuth =
+    { CreateIssue = createIssue gitHubApiUrl gitHubAuth 
       ParseWebHookNotification = parseWebHookNotification 
-      AddCommit = addCommit }
+      AddCommit = addCommit gitHubApiUrl gitHubAuth }

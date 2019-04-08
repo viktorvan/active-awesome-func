@@ -34,9 +34,9 @@ let gitHubRepoUrlWithAuth =
     gitHubRepo 
     |> sprintf" https://%s:%s@github.com/%s" gitHubUsernameRaw gitHubPasswordRaw
 
-let gitHubIssueApi = 
+let gitHubApiUrl = 
     gitHubRepo 
-    |> sprintf "https://api.github.com/repos/%s/issues"
+    |> sprintf "https://api.github.com/repos/%s"
 
 let gitHubAuth =
     let base64 = 

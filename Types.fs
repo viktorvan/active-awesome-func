@@ -70,7 +70,7 @@ module HttpRequest =
 module HttpResponse =
     let ensureSuccessStatusCode (response: FSharp.Data.HttpResponse) =
         if response.StatusCode < 200 && response.StatusCode >= 300 then "HttpRequest failed" |> Error
-        else Ok ()
+        else Ok response
 
 type Tip =
     { Url: NotEmptyString
@@ -90,3 +90,9 @@ module Tip =
                   Username = username  
                   SlackResponseUrl = responseUrl }
         }
+
+let parseWith parser str =
+    try
+        parser str |> Ok
+    with 
+        | exn -> exn.ToString() |> Error
