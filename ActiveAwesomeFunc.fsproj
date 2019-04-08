@@ -6,8 +6,6 @@
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="Cvdm.ErrorHandling" Version="2.0.0" />
-        <PackageReference Include="Fake.Api.Slack" Version="5.10.1" />
-        <PackageReference Include="Fake.Tools.Git" Version="5.12.6" />
         <PackageReference Include="FSharp.Data" Version="3.0.1" />
         <PackageReference Include="FSharpPlus" Version="1.0.0" />
         <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.Storage" Version="3.0.4" />
