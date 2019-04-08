@@ -1,4 +1,4 @@
-module ActiveAwesomeFunctions.Settings
+module ActiveAwesome.Settings
 
 open System.Text
 open System

@@ -1,5 +1,5 @@
 [<AutoOpen>]
-module ActiveAwesomeFunctions.Types
+module ActiveAwesome.Types
 open System
 open Newtonsoft.Json
 open Microsoft.AspNetCore.Http

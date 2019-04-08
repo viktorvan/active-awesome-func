@@ -1,4 +1,4 @@
-module ActiveAwesomeFunctions.JsonHelper
+module ActiveAwesome.JsonHelper
 
 open Newtonsoft.Json
 

@@ -1,8 +1,8 @@
-module ActiveAwesomeFunctions.Queue 
+module ActiveAwesome.Queue 
 
 open Microsoft.WindowsAzure.Storage
 open Microsoft.WindowsAzure.Storage.Queue
-open ActiveAwesomeFunctions.JsonHelper
+open ActiveAwesome.JsonHelper
 
 type Queue =
     { EnqueueGitHubIssue: Tip -> Async<Result<unit, string>> 

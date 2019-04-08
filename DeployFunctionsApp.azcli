@@ -18,9 +18,4 @@ az storage queue create --name $QUEUE_NAME --account-name $STORAGE_NAME
 
 az functionapp create --resource-group $RESOURCEGROUP_NAME --consumption-plan-location $LOCATION --name $NAME --storage-account $STORAGE_NAME --runtime dotnet
 
-func azure functionapp publish $NAME
-
-az functionapp config appsettings set --name $NAME --resource-group $RESOURCEGROUP_NAME --settings WEBHOOK_URL=$WEBHOOK_URL
-az functionapp config appsettings set --name $NAME --resource-group $RESOURCEGROUP_NAME --settings GITHUB_USERNAME=$GITHUB_USERNAME
-az functionapp config appsettings set --name $NAME --resource-group $RESOURCEGROUP_NAME --settings GITHUB_PASSWORD=$GITHUB_PASSWORD
-az functionapp config appsettings set --name $NAME --resource-group $RESOURCEGROUP_NAME --settings WEBSITE_RUN_FROM_PACKAGE=1
+func azure functionapp publish $NAME --publish-local-settings

@@ -1,9 +1,9 @@
-module ActiveAwesomeFunctions.Slack
+module ActiveAwesome.Slack
 
 open FSharp.Data
 open Microsoft.AspNetCore.Http
 open System.IO
-open ActiveAwesomeFunctions.JsonHelper
+open ActiveAwesome.JsonHelper
 open FSharp.Data.HttpRequestHeaders
 
 

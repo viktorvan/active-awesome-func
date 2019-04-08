@@ -1,4 +1,4 @@
-module ActiveAwesomeFunctions.Functions
+module ActiveAwesome.Functions
 
 open Microsoft.Azure.WebJobs
 open Microsoft.AspNetCore.Http
@@ -6,8 +6,8 @@ open Microsoft.AspNetCore.Mvc
 open System.Web.Http
 open System
 open Microsoft.Extensions.Logging
-open ActiveAwesomeFunctions.JsonHelper
-open ActiveAwesomeFunctions
+open ActiveAwesome.JsonHelper
+open ActiveAwesome
 
 
 let gitHub = GitHub.gitHub Settings.gitHubApiUrl Settings.gitHubAuth
