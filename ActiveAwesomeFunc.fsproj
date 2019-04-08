@@ -27,7 +27,6 @@
         <Compile Include="JsonHelper.fs" />
         <Compile Include="Samples.fs" />
         <Compile Include="Types.fs" />
-        <Compile Include="Async.fs" />
         <Compile Include="Settings.fs" />
         <Compile Include="GitHub.fs" />
         <Compile Include="Slack.fs" />

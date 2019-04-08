@@ -74,7 +74,9 @@ let private appendTipToFile path tipUrl tipUsername =
             | exn -> return! exn.ToString() |> Error
     }
 
+let private addCommit tip = failwith "not implemented"
+
 let gitHub gitHubIssueApi gitHubAuth =
     { CreateIssue = createIssue gitHubIssueApi gitHubAuth 
       ParseWebHookNotification = parseWebHookNotification 
-      AddCommit = failwith "not impletmented" }
+      AddCommit = addCommit }

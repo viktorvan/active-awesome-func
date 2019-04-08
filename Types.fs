@@ -1,10 +1,12 @@
 [<AutoOpen>]
 module ActiveAwesomeFunctions.Types
 open System
+open Newtonsoft.Json
 open Microsoft.AspNetCore.Http
 open System.IO
 open System.Web
-open Newtonsoft.Json
+open Microsoft.Extensions.Logging
+open System.Threading.Tasks
 
 [<JsonObject(MemberSerialization = MemberSerialization.Fields)>]
 type NotEmptyString = 
@@ -22,6 +24,38 @@ module NotEmptyString =
 type NotEmptyString with
     member this.Value = NotEmptyString.value this
 
+type IssueUrl = NotEmptyString
+
+exception AwesomeFuncException of string
+
+module Result = 
+    let raiseError (log: ILogger) functionName = function
+    | Ok r -> r
+    | Error e -> 
+        (functionName, e) ||> sprintf "%s failed with error %s" |> log.LogError
+        e |> AwesomeFuncException |> raise
+
+module Async =
+    let bind fA xA = 
+        async {
+            let! x = xA
+            return! fA x
+        }
+
+    let map f xA =
+        async {
+            let! x = xA
+            return f x
+        }
+
+    let runAsTaskT log name ``async`` =
+        ``async`` 
+        |> map (Result.raiseError log name)
+        |> Async.StartAsTask
+    let runAsTask log name ``async``  =
+        runAsTaskT log name ``async``  :> Task
+
+
 module HttpRequest =
     let bodyAsString (req: HttpRequest) =
         asyncResult {
@@ -37,7 +71,6 @@ module HttpResponse =
     let ensureSuccessStatusCode (response: FSharp.Data.HttpResponse) =
         if response.StatusCode < 200 && response.StatusCode >= 300 then "HttpRequest failed" |> Error
         else Ok ()
-
 
 type Tip =
     { Url: NotEmptyString
@@ -57,7 +90,3 @@ module Tip =
                   Username = username  
                   SlackResponseUrl = responseUrl }
         }
-
-type IssueUrl = NotEmptyString
-
-exception AwesomeFuncException of string
