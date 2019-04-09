@@ -34,6 +34,11 @@ let storageName = Environment.environVarOrDefault "STORAGE_NAME" "activeawesomes
 let sku = Environment.environVarOrDefault "SKU" "Standard_LRS"
 let queues = [ "active-awesome-github-issue"; "active-awesome-github-commit"; "active-awesome-slack-response"; "active-awesome-slack-notification" ]
 let functionAppName = Environment.environVarOrDefault "FUNCTIONAPP_NAME" "active-awesome-func"
+let gitHubRepo = Environment.environVar "GITHUB_REPO" 
+let gitHubUsername = Environment.environVar "GITHUB_USERNAME" 
+let gitHubPassword = Environment.environVar "GITHUB_PASSWORD" 
+let slackWebhookUrl = Environment.environVar "SLACK_WEBHOOK_URL" 
+let storageConnection = Environment.environVar "STORAGE_CONNECTION"
 
 let runTool cmd args workingDir =
     let arguments =
@@ -78,12 +83,25 @@ Target.create "Publish" (fun _ ->
     Shell.copyFile deployDir host
 )
 
+Target.create "PublishLocalSettings" (fun _ ->
+    let settings = sprintf "%s/local.settings.json" functionsPath
+    Shell.copyFile deployDir settings
+)
+
 Target.create "Deploy" (fun _ ->
+    funcCli (sprintf "azure functionapp publish %s" functionAppName) deployDir
+    azCli (sprintf "functionapp config appsettings set GITHUB_REPO=%s GITHUB_USERNAME=%s GITHUB_PASSWORD=%s SLACK_WEBHOOK_URL=%s STORAGE_CONNECTION=%s" gitHubRepo gitHubUsername gitHubPassword slackWebhookUrl storageConnection) "."
+)
+
+Target.create "DeployWithLocalSettings" (fun _ ->
     funcCli (sprintf "azure functionapp publish %s --publish-local-settings" functionAppName) deployDir
 )
 
 "Clean" 
     ==> "Publish"
     ==> "Deploy"
+
+"Publish"
+    ==> "PublishLocalSettings"
 
 Target.runOrDefaultWithArguments "Build"
