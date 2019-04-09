@@ -43,10 +43,9 @@ let private createIssue gitHubApiUrl gitHubAuth tip =
     let issueJson =
         let username = tip.Username |> NotEmptyString.value
         let url = tip.Url |> NotEmptyString.value
-        let title = sprintf "Please add this tip to the awesome collection on behalf of %s" username
+        let title = sprintf "%s has added a new tip: %s" username url
 
-        let fullText =
-            sprintf "Add the following tip in a suitable place:\n%s (added by %s)\n" url username
+        let fullText = "Please move this tip from pending.MD to a more suitable place.\n"
         GitHubIssue(title, fullText).JsonValue.ToString()
     asyncResult {
         try
