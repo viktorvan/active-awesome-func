@@ -72,13 +72,13 @@ Target.create "Publish" (fun _ ->
         { p with Configuration = DotNet.BuildConfiguration.Release
                  OutputPath = Some deployDir}) 
         functionsPath
-)
-
-Target.create "Deploy" (fun _ ->
     let settings = sprintf "%s/local.settings.json" functionsPath
     let host = sprintf "%s/host.json" functionsPath
     Shell.copyFile deployDir settings
     Shell.copyFile deployDir host
+)
+
+Target.create "Deploy" (fun _ ->
     funcCli (sprintf "azure functionapp publish %s --publish-local-settings" functionAppName) deployDir
 )
 
