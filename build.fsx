@@ -77,18 +77,18 @@ Target.create "Publish" (fun _ ->
         { p with Configuration = DotNet.BuildConfiguration.Release
                  OutputPath = Some deployDir}) 
         functionsPath
-    let settings = sprintf "%s/local.settings.json" functionsPath
     let host = sprintf "%s/host.json" functionsPath
-    Shell.copyFile deployDir settings
     Shell.copyFile deployDir host
 )
 
-Target.create "PublishLocalSettings" (fun _ ->
-    let settings = sprintf "%s/local.settings.json" functionsPath
-    Shell.copyFile deployDir settings
+Target.create "Deploy" (fun _ ->
+    funcCli (sprintf "azure functionapp publish %s" functionAppName) deployDir
+    azCli (sprintf "functionapp config appsettings set GITHUB_REPO=%s GITHUB_USERNAME=%s GITHUB_PASSWORD=%s SLACK_WEBHOOK_URL=%s STORAGE_CONNECTION=%s" gitHubRepo gitHubUsername gitHubPassword slackWebhookUrl storageConnection) "."
 )
 
-Target.create "Deploy" (fun _ ->
+Target.create "DeployWithLocalSettings" (fun _ ->
+    let settings = sprintf "%s/local.settings.json" functionsPath
+    Shell.copyFile deployDir settings
     funcCli (sprintf "azure functionapp publish %s" functionAppName) deployDir
     azCli (sprintf "functionapp config appsettings set GITHUB_REPO=%s GITHUB_USERNAME=%s GITHUB_PASSWORD=%s SLACK_WEBHOOK_URL=%s STORAGE_CONNECTION=%s" gitHubRepo gitHubUsername gitHubPassword slackWebhookUrl storageConnection) "."
 )
@@ -102,6 +102,6 @@ Target.create "DeployWithLocalSettings" (fun _ ->
     ==> "Deploy"
 
 "Publish"
-    ==> "PublishLocalSettings"
+    ==> "DeployWithLocalSettings"
 
 Target.runOrDefaultWithArguments "Build"
