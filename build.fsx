@@ -32,13 +32,13 @@ let resourceGroupName = Environment.environVarOrDefault "RESOURCEGROUP_NAME" "ac
 let location = Environment.environVarOrDefault "LOCATION" "westeurope"
 let storageName = Environment.environVarOrDefault "STORAGE_NAME" "activeawesomestorage"
 let sku = Environment.environVarOrDefault "SKU" "Standard_LRS"
-let queues = [ "active-awesome-github-issue"; "active-awesome-github-commit"; "active-awesome-slack-response"; "active-awesome-slack-notification" ]
 let functionAppName = Environment.environVarOrDefault "FUNCTIONAPP_NAME" "active-awesome-func"
 let gitHubRepo = Environment.environVar "GITHUB_REPO" 
 let gitHubUsername = Environment.environVar "GITHUB_USERNAME" 
 let gitHubPassword = Environment.environVar "GITHUB_PASSWORD" 
 let slackWebhookUrl = Environment.environVar "SLACK_WEBHOOK_URL" 
 let storageConnection = Environment.environVar "STORAGE_CONNECTION"
+let queues = [ "active-awesome-github-issue"; "active-awesome-github-commit"; "active-awesome-slack-response"; "active-awesome-slack-notification" ]
 
 let runTool cmd args workingDir =
     let arguments =
@@ -94,9 +94,6 @@ Target.create "DeployWithLocalSettings" (fun _ ->
 
 "Clean" 
     ==> "Publish"
-    ==> "Deploy"
-
-"Publish"
     ==> "DeployWithLocalSettings"
 
 Target.runOrDefaultWithArguments "Build"
