@@ -1,0 +1,8 @@
+assembly-versioning-scheme: MajorMinorPatchTag
+mode: ContinuousDeployment
+next-version: 1.0.0
+branches:
+  master:
+    tag: stable
+ignore:
+  sha: []
