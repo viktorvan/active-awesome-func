@@ -90,7 +90,7 @@ Target.create "InstallPaket" (fun _ ->
 ) 
 
 Target.create "InstallTools" (fun _ ->
-    if Environment.isWindows then
+    if (not BuildServer.isLocalBuild) && Environment.isWindows then
         chocoInstall "azure-functions-core-tools" 
 )
 
