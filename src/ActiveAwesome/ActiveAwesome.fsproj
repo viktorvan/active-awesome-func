@@ -1,36 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <TargetFramework>netcoreapp2.1</TargetFramework>
-        <AzureFunctionsVersion></AzureFunctionsVersion>
-        <RootNamespace>ActiveAwesome</RootNamespace>
-    </PropertyGroup>
-    <ItemGroup>
-        <PackageReference Include="Cvdm.ErrorHandling" Version="2.0.0" />
-        <PackageReference Include="FSharp.Data" Version="3.0.1" />
-        <PackageReference Include="FSharpPlus" Version="1.0.0" />
-        <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.Storage" Version="3.0.4" />
-        <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="1.0.24" />
-        <PackageReference Include="NewtonSoft.json" Version="11.0.2" />
-    </ItemGroup>
-    <ItemGroup>
-        <None Update="host.json">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="local.settings.json">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <CopyToPublishDirectory>Never</CopyToPublishDirectory>
-        </None>
-    </ItemGroup>
-    <ItemGroup>
-        <Compile Include="JsonHelper.fs" />
-        <Compile Include="Types.fs" />
-        <Compile Include="Settings.fs" />
-        <Compile Include="GitHub.fs" />
-        <Compile Include="Slack.fs" />
-        <Compile Include="Queue.fs" />
-        <Compile Include="Functions.fs" />
-    </ItemGroup>
-    <ItemGroup>
-        <Content Include="PushEvent.json" />
-    </ItemGroup>
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <AzureFunctionsVersion>
+    </AzureFunctionsVersion>
+    <RootNamespace>ActiveAwesome</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Update="host.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="local.settings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="JsonHelper.fs" />
+    <Compile Include="Types.fs" />
+    <Compile Include="Settings.fs" />
+    <Compile Include="GitHub.fs" />
+    <Compile Include="Slack.fs" />
+    <Compile Include="Queue.fs" />
+    <Compile Include="Functions.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="PushEvent.json" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

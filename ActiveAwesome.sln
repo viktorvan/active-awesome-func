@@ -3,6 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{23FBE583-AC1C-45D0-BAE9-45F7F327AD75}"
+	ProjectSection(SolutionItems) = preProject
+		paket.dependencies = paket.dependencies
+	EndProjectSection
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{6E5EAAA4-0AB4-4CA4-B967-589FCFD5519B}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ActiveAwesome", "src\ActiveAwesome\ActiveAwesome.fsproj", "{319F69BA-E084-4D2B-B0A8-B785F28530BF}"

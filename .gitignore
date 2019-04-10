@@ -248,6 +248,8 @@ _Pvt_Extensions
 # Paket dependency manager
 .paket/paket.exe
 paket-files/
+.paket/paket
+.paket/.store
 
 # FAKE - F# Make
 .fake/

@@ -1,0 +1,10 @@
+source https://api.nuget.org/v3/index.json
+framework: netcoreapp2.1
+
+nuget FSharp.Core
+nuget Cvdm.ErrorHandling 2.0.0
+nuget FSharp.Data 3.0.1
+nuget FSharpPlus 1.0.0
+nuget Microsoft.Azure.WebJobs.Extensions.Storage 3.0.4
+nuget Microsoft.NET.Sdk.Functions 1.0.24
+nuget NewtonSoft.json 11.0.2
