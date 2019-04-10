@@ -50,7 +50,17 @@ let runTool cmd args workingDir =
     |> Proc.run
     |> ignore
 
-let azCli args = runTool "az" args "."
+let azCli args = 
+    let arguments =
+        args
+        |> String.split ' '
+        |> Arguments.OfArgs
+    Command.RawCommand("az", arguments)
+    |> CreateProcess.fromCommand
+    |> CreateProcess.withWorkingDirectory "."
+    // |> CreateProcess.ensureExitCode
+    |> Proc.run
+    |> ignore
 let funcCli = runTool "func"
 let chocoInstall args =
     runTool "choco" (sprintf "install %s" args) "."
