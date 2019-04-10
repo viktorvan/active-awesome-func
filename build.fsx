@@ -81,10 +81,17 @@ Target.create "Publish" (fun _ ->
     Shell.copyFile deployDir host
 )
 
+Target.create "InstallPaket" (fun _ ->
+    if BuildServer.isLocalBuild then 
+        ()
+    else
+        let result = DotNet.exec id "tool" "install Paket"
+        if result.OK then () else failwith "Failed to install Paket on build server"
+) 
+
 Target.create "InstallTools" (fun _ ->
     if Environment.isWindows then
         chocoInstall "azure-functions-core-tools" 
-        chocoInstall "azure-cli"
 )
 
 Target.create "Deploy" (fun _ ->
@@ -101,6 +108,7 @@ Target.create "DeployWithLocalSettings" (fun _ ->
 )
 
 "Clean" 
+    ==> "InstallPaket"
     ==> "Publish"
     ==> "DeployWithLocalSettings"
 
