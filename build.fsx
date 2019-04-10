@@ -89,11 +89,6 @@ Target.create "Deploy" (fun _ ->
 Target.create "DeployWithLocalSettings" (fun _ ->
     let settings = sprintf "%s/local.settings.json" functionsPath
     Shell.copyFile deployDir settings
-    funcCli (sprintf "azure functionapp publish %s" functionAppName) deployDir
-    azCli (sprintf "functionapp config appsettings set GITHUB_REPO=%s GITHUB_USERNAME=%s GITHUB_PASSWORD=%s SLACK_WEBHOOK_URL=%s STORAGE_CONNECTION=%s" gitHubRepo gitHubUsername gitHubPassword slackWebhookUrl storageConnection) "."
-)
-
-Target.create "DeployWithLocalSettings" (fun _ ->
     funcCli (sprintf "azure functionapp publish %s --publish-local-settings" functionAppName) deployDir
 )
 
