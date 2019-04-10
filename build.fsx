@@ -15,14 +15,12 @@ nuget Fake.IO.FileSystem //"
 
 #nowarn "52"
 
-open System
-open Fake.Core
 open Fake.Core.TargetOperators
 open Fake.DotNet
 open Fake.IO
 open Fake.IO.Globbing.Operators
 
-let deployDir = Path.getFullName "./deploy"
+let deployDir = Environment.environVarOrDefault "DEPLOY_DIR" (Path.getFullName "./deploy")
 let functionsPath = Path.getFullName "./src/ActiveAwesome"
 let configuration =
     match Environment.environVarOrDefault "BEEKEEP_CONFIGURATION" "release" with

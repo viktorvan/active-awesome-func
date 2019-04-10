@@ -34,7 +34,7 @@ type Committer = UpdateContentRequestJson.Committer
 
 type GitHub =
     { CreateIssue : Tip -> Async<Result<IssueUrl, string>>
-      ParseWebHookNotification : NotEmptyString -> Result<NotEmptyString option, string>
+      ParseWebHookNotification : string -> Result<NotEmptyString option, string>
       AddCommit : Tip -> Async<Result<unit, string>> }
 
 let private createIssue gitHubApiUrl gitHubAuth tip =
@@ -64,7 +64,6 @@ let private parseWebHookNotification json =
     result {
         try
             let! commits = json
-                           |> NotEmptyString.value
                            |> parseWith PushEventJson.Parse
                            |> Result.map (fun event -> event.Commits)
             return! commits

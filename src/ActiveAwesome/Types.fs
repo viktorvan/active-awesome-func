@@ -9,27 +9,6 @@ open System.Web
 open Microsoft.Extensions.Logging
 open System.Threading.Tasks
 
-[<JsonObject(MemberSerialization = MemberSerialization.Fields)>]
-type NotEmptyString = private NotEmptyString of string
-
-module NotEmptyString =
-    let create name str =
-        if String.IsNullOrWhiteSpace str then
-            name
-            |> sprintf "%s cannot be empty"
-            |> Error
-        else
-            str
-            |> NotEmptyString
-            |> Ok
-
-    let value (NotEmptyString str) = str
-
-type NotEmptyString with
-    member this.Value = NotEmptyString.value this
-
-type IssueUrl = NotEmptyString
-
 exception AwesomeFuncException of string
 
 module Result =
@@ -66,9 +45,7 @@ module HttpRequest =
         asyncResult {
             try
                 use stream = new StreamReader(stream = req.Body)
-                return! stream.ReadToEndAsync()
-                        |> Async.AwaitTask
-                        |> Async.map (NotEmptyString.create "HttpRequest body string")
+                return! stream.ReadToEndAsync() |> Async.AwaitTask
             with exn -> return! exn.ToString() |> Error
         }
 
@@ -77,6 +54,27 @@ module HttpResponse =
         let isError = response.StatusCode < 200 && response.StatusCode >= 300
         if isError then "HttpRequest failed" |> Error
         else Ok response
+
+[<JsonObject(MemberSerialization = MemberSerialization.Fields)>]
+type NotEmptyString = private NotEmptyString of string
+
+module NotEmptyString =
+    let create name str =
+        if String.IsNullOrWhiteSpace str then
+            name
+            |> sprintf "%s cannot be empty"
+            |> Error
+        else
+            str
+            |> NotEmptyString
+            |> Ok
+
+    let value (NotEmptyString str) = str
+
+type NotEmptyString with
+    member this.Value = NotEmptyString.value this
+
+type IssueUrl = NotEmptyString
 
 type Tip =
     { Url : NotEmptyString
@@ -87,10 +85,7 @@ module Tip =
     let fromHttpRequest (req : HttpRequest) =
         asyncResult {
             let! bodyString = req |> HttpRequest.bodyAsString
-            let query =
-                bodyString
-                |> NotEmptyString.value
-                |> HttpUtility.ParseQueryString
+            let query = bodyString |> HttpUtility.ParseQueryString
             let! url = query.["text"] |> NotEmptyString.create "url"
             let! username = query.["user_name"] |> NotEmptyString.create "username"
             let! responseUrl = query.["response_url"] |> NotEmptyString.create "response_url"
