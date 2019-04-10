@@ -85,7 +85,7 @@ Target.create "InstallPaket" (fun _ ->
     if BuildServer.isLocalBuild then 
         ()
     else
-        let result = DotNet.exec id "tool" "install Paket"
+        let result = DotNet.exec id "tool" "install --global Paket"
         if result.OK then () else failwith "Failed to install Paket on build server"
 ) 
 
