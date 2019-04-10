@@ -62,7 +62,7 @@ Target.create "Clean" (fun _ ->
 
 Target.create "Build" (fun _ -> DotNet.build (fun p -> { p with Configuration = configuration }) functionsPath)
 
-Target.create "SetupInfrastructure" (fun _ ->
+Target.create "SetupAzureResources" (fun _ ->
     let createQueue name = azCli (sprintf "storage queue create --name %s --account-name %s" name storageName) "."
     azCli (sprintf "group create --name %s --location %s" resourceGroupName location) "."
     azCli (sprintf "storage account create --name %s --location %s --resource-group %s --sku %s" storageName location resourceGroupName sku) "."
