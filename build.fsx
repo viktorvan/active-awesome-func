@@ -52,6 +52,8 @@ let runTool cmd args workingDir =
 
 let azCli = runTool "az"
 let funcCli = runTool "func"
+let chocoInstall args =
+    runTool "choco" (sprintf "install %s" args) "."
 
 Target.create "Clean" (fun _ ->
         Shell.cleanDirs [ deployDir ]
@@ -79,6 +81,12 @@ Target.create "Publish" (fun _ ->
     Shell.copyFile deployDir host
 )
 
+Target.create "InstallTools" (fun _ ->
+    if Environment.isWindows then
+        chocoInstall "azure-functions-core-tools" 
+        chocoInstall "azure-cli"
+)
+
 Target.create "Deploy" (fun _ ->
     funcCli (sprintf "azure functionapp publish %s" functionAppName) deployDir
     azCli (sprintf "functionapp config appsettings set GITHUB_REPO=%s GITHUB_USERNAME=%s GITHUB_PASSWORD=%s SLACK_WEBHOOK_URL=%s STORAGE_CONNECTION=%s" gitHubRepo gitHubUsername gitHubPassword slackWebhookUrl storageConnection) "."
@@ -93,5 +101,8 @@ Target.create "DeployWithLocalSettings" (fun _ ->
 "Clean" 
     ==> "Publish"
     ==> "DeployWithLocalSettings"
+
+"InstallTools"
+    ==> "Deploy"
 
 Target.runOrDefaultWithArguments "Build"
