@@ -2,6 +2,7 @@ open Fake.Core
 #r "paket:
 nuget FSharp.Core 4.5.4
 nuget Fake.Core.Target
+nuget Fake.JavaScript.Npm
 nuget Fake.DotNet.Cli
 nuget Fake.Dotnet.Testing.Expecto
 nuget Fake.IO.FileSystem //"
@@ -19,6 +20,7 @@ open Fake.Core.TargetOperators
 open Fake.DotNet
 open Fake.IO
 open Fake.IO.Globbing.Operators
+open Fake.JavaScript
 
 
 let paketFile = if Environment.isWindows then "paket.exe" else "paket"
@@ -97,7 +99,7 @@ Target.create "Publish" (fun _ ->
 
 Target.create "InstallTools" (fun _ ->
     if Environment.isWindows then
-        runTool "npm" "install -g azure-functions-core-tools" "."
+        Npm.exec "install -g azure-functions-core-tools" id
 
     if not (File.exists paketExe) then
         DotNet.exec id "tool" "install --tool-path \".paket\" Paket --add-source https://api.nuget.org/v3/index.json"
