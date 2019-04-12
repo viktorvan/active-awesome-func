@@ -91,6 +91,14 @@ Target.create "Publish" (fun _ ->
     Shell.copyFile deployDir host
 )
 
+Target.create "Install Paket-tool" (fun _ ->
+    if BuildServer.isLocalBuild then
+        ()
+    else 
+        let result = DotNet.exec id "tool" "install --tool-path .paket Paket"
+        if result.OK then () else failwith "Failed to install Paket on build server"
+)
+
 Target.create "Deploy" (fun _ ->
     funcCli "--version" "."
     azCli "--version"
