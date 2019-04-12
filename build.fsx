@@ -56,20 +56,18 @@ let runTool cmd args workingDir =
     |> Proc.run
     |> ignore
 
-let azCli args = 
+let azCli args workingDir= 
     let arguments =
         args
         |> String.split ' '
         |> Arguments.OfArgs
     Command.RawCommand("az", arguments)
     |> CreateProcess.fromCommand
-    |> CreateProcess.withWorkingDirectory "."
+    |> CreateProcess.withWorkingDirectory workingDir
     // |> CreateProcess.ensureExitCode
     |> Proc.run
     |> ignore
 let funcCli = runTool "func"
-let chocoInstall args =
-    runTool "choco" (sprintf "install %s" args) "."
 
 Target.create "Clean" (fun _ ->
         Shell.cleanDirs [ deployDir ]
@@ -81,11 +79,11 @@ Target.create "Clean" (fun _ ->
 Target.create "Build" (fun _ -> DotNet.build (fun p -> { p with Configuration = configuration }) functionsPath)
 
 Target.create "SetupAzureResources" (fun _ ->
-    let createQueue name = azCli (sprintf "storage queue create --name %s --account-name %s" name storageName)
-    azCli (sprintf "group create --name %s --location %s" resourceGroupName location)
-    azCli (sprintf "storage account create --name %s --location %s --resource-group %s --sku %s" storageName location resourceGroupName sku)
+    let createQueue name = azCli (sprintf "storage queue create --name %s --account-name %s" name storageName) functionsPath
+    azCli (sprintf "group create --name %s --location %s" resourceGroupName location) functionsPath
+    azCli (sprintf "storage account create --name %s --location %s --resource-group %s --sku %s" storageName location resourceGroupName sku) functionsPath
     queues |> List.iter createQueue
-    azCli (sprintf "functionapp create --resource-group %s --consumption-plan-location %s --name %s --storage-account %s --runtime dotnet" resourceGroupName location functionAppName storageName)
+    azCli (sprintf "functionapp create --resource-group %s --consumption-plan-location %s --name %s --storage-account %s --runtime dotnet" resourceGroupName location functionAppName storageName) functionsPath
 )
 
 Target.create "Publish" (fun _ ->
@@ -109,10 +107,10 @@ Target.create "InstallTools" (fun _ ->
 )
 
 Target.create "Deploy" (fun _ ->
-    funcCli "--version" "."
-    azCli "--version"
+    funcCli "--version" functionsPath
+    azCli "--version" functionsPath
     funcCli (sprintf "azure functionapp publish %s" functionAppName) deployDir
-    azCli (sprintf "functionapp config appsettings set GITHUB_REPO=%s GITHUB_USERNAME=%s GITHUB_PASSWORD=%s SLACK_WEBHOOK_URL=%s STORAGE_CONNECTION=%s" gitHubRepo gitHubUsername gitHubPassword slackWebhookUrl storageConnection)
+    azCli (sprintf "functionapp config appsettings set GITHUB_REPO=%s GITHUB_USERNAME=%s GITHUB_PASSWORD=%s SLACK_WEBHOOK_URL=%s STORAGE_CONNECTION=%s" gitHubRepo gitHubUsername gitHubPassword slackWebhookUrl storageConnection) functionsPath
 )
 
 Target.create "DeployWithLocalSettings" (fun _ ->
@@ -125,7 +123,7 @@ Target.create "DeployWithLocalSettings" (fun _ ->
     ==> "InstallTools"
     ==> "Publish"
     ==> "DeployWithLocalSettings"
-
+// 
 "InstallTools"
     ==> "Build"
 
