@@ -20,6 +20,10 @@ open Fake.DotNet
 open Fake.IO
 open Fake.IO.Globbing.Operators
 
+
+let paketFile = if Environment.isWindows then "paket.exe" else "paket"
+let paketExe = System.IO.Path.Combine(__SOURCE_DIRECTORY__, ".paket", paketFile)
+
 let deployDir = Environment.environVarOrDefault "DEPLOY_DIR" (Path.getFullName "./deploy")
 let functionsPath = Path.getFullName "./src/ActiveAwesome"
 let configuration =
@@ -91,12 +95,12 @@ Target.create "Publish" (fun _ ->
     Shell.copyFile deployDir host
 )
 
-Target.create "Install Paket-tool" (fun _ ->
-    if BuildServer.isLocalBuild then
-        ()
-    else 
-        let result = DotNet.exec id "tool" "install --tool-path .paket Paket"
-        if result.OK then () else failwith "Failed to install Paket on build server"
+Target.create "InstallPaket" (fun _ ->
+    if not (File.exists paketExe) then
+        DotNet.exec id "tool" "install --tool-path \".paket\" Paket --add-source https://api.nuget.org/v3/index.json"
+        |> ignore
+    else
+        printfn "paket already installed"
 )
 
 Target.create "Deploy" (fun _ ->
@@ -113,7 +117,14 @@ Target.create "DeployWithLocalSettings" (fun _ ->
 )
 
 "Clean" 
+    ==> "InstallPaket"
     ==> "Publish"
     ==> "DeployWithLocalSettings"
+
+"InstallPaket"
+    ==> "Build"
+
+"InstallPaket"
+    ==> "Deploy"
 
 Target.runOrDefaultWithArguments "Build"
