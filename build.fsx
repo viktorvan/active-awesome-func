@@ -95,7 +95,10 @@ Target.create "Publish" (fun _ ->
     Shell.copyFile deployDir host
 )
 
-Target.create "InstallPaket" (fun _ ->
+Target.create "InstallTools" (fun _ ->
+    if Environment.isWindows then
+        runTool "npm" "install -g azure-functions-core-tools" "."
+
     if not (File.exists paketExe) then
         DotNet.exec id "tool" "install --tool-path \".paket\" Paket --add-source https://api.nuget.org/v3/index.json"
         |> ignore
@@ -117,14 +120,14 @@ Target.create "DeployWithLocalSettings" (fun _ ->
 )
 
 "Clean" 
-    ==> "InstallPaket"
+    ==> "InstallTools"
     ==> "Publish"
     ==> "DeployWithLocalSettings"
 
-"InstallPaket"
+"InstallTools"
     ==> "Build"
 
-"InstallPaket"
+"InstallTools"
     ==> "Deploy"
 
 Target.runOrDefaultWithArguments "Build"
