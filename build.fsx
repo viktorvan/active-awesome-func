@@ -25,7 +25,6 @@ open Fake.JavaScript
 
 let paketFile = if Environment.isWindows then "paket.exe" else "paket"
 let paketExe = System.IO.Path.Combine(__SOURCE_DIRECTORY__, ".paket", paketFile)
-let funcFile = if Environment.isWindows then "func.cmd" else "func"
 
 let deployDir = Environment.environVarOrDefault "DEPLOY_DIR" (Path.getFullName "./deploy")
 let functionsPath = Path.getFullName "./src/ActiveAwesome"
@@ -65,10 +64,10 @@ let azCli args =
     Command.RawCommand("az", arguments)
     |> CreateProcess.fromCommand
     |> CreateProcess.withWorkingDirectory "."
-    // |> CreateProcess.ensureExitCode
+    |> CreateProcess.ensureExitCode
     |> Proc.run
     |> ignore
-let funcCli = runTool funcFile
+let funcCli = runTool "func"
 
 Target.create "Clean" (fun _ ->
         Shell.cleanDirs [ deployDir ]
@@ -98,14 +97,18 @@ Target.create "Publish" (fun _ ->
 
 Target.create "InstallTools" (fun _ ->
     if Environment.isWindows then
-        Npm.exec "install -g azure-functions-core-tools" id
+        try 
+            funcCli "..version" "."
+        with
+            _ ->
+            Npm.exec "install -g azure-functions-core-tools" id
 
     if not (File.exists paketExe) then
         DotNet.exec id "tool" "install --tool-path \".paket\" Paket --add-source https://api.nuget.org/v3/index.json"
         |> ignore
     else
         printfn "paket already installed"
-    funcCli "--version" "."
+
     azCli "--version"
 )
 
