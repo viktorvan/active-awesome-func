@@ -98,7 +98,7 @@ Target.create "Publish" (fun _ ->
 Target.create "InstallTools" (fun _ ->
     if Environment.isWindows then
         try 
-            funcCli "..version" "."
+            funcCli "--version" "."
         with
             _ ->
             Npm.exec "install -g azure-functions-core-tools" id
@@ -109,6 +109,7 @@ Target.create "InstallTools" (fun _ ->
     else
         printfn "paket already installed"
 
+    funcCli "--version" "."
     azCli "--version"
 )
 
