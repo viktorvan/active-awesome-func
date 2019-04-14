@@ -46,12 +46,13 @@ let storageConnection = Environment.environVar "STORAGE_CONNECTION"
 let queues = [ "active-awesome-github-issue"; "active-awesome-github-commit"; "active-awesome-slack-response"; "active-awesome-slack-notification" ]
 
 let runTool cmd args workingDir =
-    let arguments =
-        args
-        |> String.split ' '
-        |> Arguments.OfArgs
-    Command.RawCommand(cmd, arguments)
-    |> CreateProcess.fromCommand
+    // let arguments =
+    //     args
+    //     |> String.split ' '
+    //     |> Arguments.OfArgs
+    // Command.RawCommand(cmd, arguments)
+    // |> CreateProcess.fromCommand
+    CreateProcess.fromRawCommandLine cmd args
     |> CreateProcess.withWorkingDirectory workingDir
     |> CreateProcess.ensureExitCode
     |> Proc.run
