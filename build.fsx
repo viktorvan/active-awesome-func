@@ -59,12 +59,13 @@ let runTool cmd args workingDir =
     |> ignore
 
 let azCli args = 
-    let arguments =
-        args
-        |> String.split ' '
-        |> Arguments.OfArgs
-    Command.RawCommand("az", arguments)
-    |> CreateProcess.fromCommand
+    // let arguments =
+    //     args
+    //     |> String.split ' '
+    //     |> Arguments.OfArgs
+    // Command.RawCommand("az", arguments)
+    // |> CreateProcess.fromCommand
+    CreateProcess.fromRawCommandLine "az.CMD" args
     |> CreateProcess.withWorkingDirectory "."
     |> CreateProcess.ensureExitCode
     |> Proc.run
