@@ -71,9 +71,10 @@ let azCli args =
     |> Proc.run
     |> ignore
 let funcCli = 
-    // if Environment.isWindows then
-    //     sprintf "%s\\node_modules\\.bin\\func.CMD" rootDir |> runTool
-    // else 
+    if Environment.isWindows then
+        // sprintf "%s\\node_modules\\.bin\\func.CMD" rootDir |> runTool
+        runTool "func.CMD"
+    else 
         runTool "func"
 
 Target.create "Clean" (fun _ ->
