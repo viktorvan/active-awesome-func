@@ -67,7 +67,10 @@ let azCli args =
     |> CreateProcess.ensureExitCode
     |> Proc.run
     |> ignore
-let funcCli = runTool "func"
+let funcCli = 
+    if Environment.isWindows then
+        runTool "node_modules\\.bin\\func"
+    else runTool "func"
 
 Target.create "Clean" (fun _ ->
         Shell.cleanDirs [ deployDir ]
@@ -101,7 +104,7 @@ Target.create "InstallTools" (fun _ ->
             funcCli "--version" "."
         with
             _ ->
-            Npm.exec "install -g azure-functions-core-tools" id
+            Npm.exec "install azure-functions-core-tools" id
 
     if not (File.exists paketExe) then
         DotNet.exec id "tool" "install --tool-path \".paket\" Paket --add-source https://api.nuget.org/v3/index.json"
