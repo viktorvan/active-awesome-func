@@ -27,6 +27,7 @@ let paketFile = if Environment.isWindows then "paket.exe" else "paket"
 let paketExe = System.IO.Path.Combine(__SOURCE_DIRECTORY__, ".paket", paketFile)
 
 let deployDir = Environment.environVarOrDefault "DEPLOY_DIR" (Path.getFullName "./deploy")
+let rootDir = Environment.environVarOrDefault "ROOT_DIR" (Path.getFullName ".")
 let functionsPath = Path.getFullName "./src/ActiveAwesome"
 let configuration =
     match Environment.environVarOrDefault "BEEKEEP_CONFIGURATION" "release" with
@@ -69,7 +70,7 @@ let azCli args =
     |> ignore
 let funcCli = 
     if Environment.isWindows then
-        runTool "node_modules\\.bin\\func"
+        sprintf "%s\\node_modules\\.bin\\func" rootDir |> runTool
     else runTool "func"
 
 Target.create "Clean" (fun _ ->
