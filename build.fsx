@@ -25,6 +25,7 @@ open Fake.JavaScript
 
 let paketFile = if Environment.isWindows then "paket.exe" else "paket"
 let paketExe = System.IO.Path.Combine(__SOURCE_DIRECTORY__, ".paket", paketFile)
+let funcFile = if Environment.isWindows then "func.cmd" else "func"
 
 let deployDir = Environment.environVarOrDefault "DEPLOY_DIR" (Path.getFullName "./deploy")
 let functionsPath = Path.getFullName "./src/ActiveAwesome"
@@ -67,7 +68,7 @@ let azCli args =
     // |> CreateProcess.ensureExitCode
     |> Proc.run
     |> ignore
-let funcCli = runTool "func"
+let funcCli = runTool funcFile
 
 Target.create "Clean" (fun _ ->
         Shell.cleanDirs [ deployDir ]
