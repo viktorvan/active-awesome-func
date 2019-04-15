@@ -131,7 +131,7 @@ Target.create "DeployWithLocalSettings" (fun _ ->
     ==> "DeployWithLocalSettings"
 
 "InstallPaket"
-    ==> "InstallTools"
+    ==> "InstallFunctionCoreTools"
     ==> "Deploy"
 
 Target.runOrDefaultWithArguments "Build"
