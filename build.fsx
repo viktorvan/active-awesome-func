@@ -27,7 +27,7 @@ let paketFile = if Environment.isWindows then "paket.exe" else "paket"
 let paketExe = System.IO.Path.Combine(__SOURCE_DIRECTORY__, ".paket", paketFile)
 
 let deployDir = Environment.environVarOrDefault "DEPLOY_DIR" (Path.getFullName "./deploy")
-let azCliDir = Environment.environVarOrDefault "AZ_CLI_DIR" (Path.getFullName ".")
+let azCliCommand = Environment.environVarOrDefault "AZ_CLI_FILE" (Path.getFullName "az")
 let functionsPath = Path.getFullName "./src/ActiveAwesome"
 let configuration =
     match Environment.environVarOrDefault "BEEKEEP_CONFIGURATION" "release" with
@@ -53,12 +53,7 @@ let runTool cmd args workingDir =
     |> ignore
 
 let azCli args = 
-    let azCommand =
-        if Environment.isWindows then
-            sprintf """%s\az.CMD""" azCliDir
-        else
-            "az"
-    CreateProcess.fromRawCommandLine azCommand args
+    CreateProcess.fromRawCommandLine azCliCommand args
     |> CreateProcess.withWorkingDirectory "."
     |> CreateProcess.ensureExitCode
     |> Proc.run
