@@ -47,14 +47,13 @@ let queues = [ "active-awesome-github-issue"; "active-awesome-github-commit"; "a
 
 let runTool cmd args workingDir =
     CreateProcess.fromRawCommandLine cmd args
-    |> CreateProcess.withWorkingDirectory workingDir
+    // |> CreateProcess.withWorkingDirectory workingDir
     |> CreateProcess.ensureExitCode
     |> Proc.run
     |> ignore
 
 let azCli args = 
     CreateProcess.fromRawCommandLine azCliCommand args
-    |> CreateProcess.withWorkingDirectory "."
     |> CreateProcess.ensureExitCode
     |> Proc.run
     |> ignore
