@@ -27,7 +27,7 @@ let paketFile = if Environment.isWindows then "paket.exe" else "paket"
 let paketExe = System.IO.Path.Combine(__SOURCE_DIRECTORY__, ".paket", paketFile)
 
 let deployDir = Environment.environVarOrDefault "DEPLOY_DIR" (Path.getFullName "./deploy")
-let rootDir = Environment.environVarOrDefault "ROOT_DIR" (Path.getFullName ".")
+let azCliDir = Environment.environVarOrDefault "AZ_CLI_DIR" (Path.getFullName ".")
 let functionsPath = Path.getFullName "./src/ActiveAwesome"
 let configuration =
     match Environment.environVarOrDefault "BEEKEEP_CONFIGURATION" "release" with
@@ -46,12 +46,6 @@ let storageConnection = Environment.environVar "STORAGE_CONNECTION"
 let queues = [ "active-awesome-github-issue"; "active-awesome-github-commit"; "active-awesome-slack-response"; "active-awesome-slack-notification" ]
 
 let runTool cmd args workingDir =
-    // let arguments =
-    //     args
-    //     |> String.split ' '
-    //     |> Arguments.OfArgs
-    // Command.RawCommand(cmd, arguments)
-    // |> CreateProcess.fromCommand
     CreateProcess.fromRawCommandLine cmd args
     |> CreateProcess.withWorkingDirectory workingDir
     |> CreateProcess.ensureExitCode
@@ -59,20 +53,18 @@ let runTool cmd args workingDir =
     |> ignore
 
 let azCli args = 
-    // let arguments =
-    //     args
-    //     |> String.split ' '
-    //     |> Arguments.OfArgs
-    // Command.RawCommand("az", arguments)
-    // |> CreateProcess.fromCommand
-    CreateProcess.fromRawCommandLine "az.CMD" args
+    let azCommand =
+        if Environment.isWindows then
+            sprintf """%s\az.CMD""" azCliDir
+        else
+            "az"
+    CreateProcess.fromRawCommandLine azCommand args
     |> CreateProcess.withWorkingDirectory "."
     |> CreateProcess.ensureExitCode
     |> Proc.run
     |> ignore
 let funcCli = 
     if Environment.isWindows then
-        // sprintf "%s\\node_modules\\.bin\\func.CMD" rootDir |> runTool
         runTool "func.CMD"
     else 
         runTool "func"
@@ -103,25 +95,26 @@ Target.create "Publish" (fun _ ->
     Shell.copyFile deployDir host
 )
 
-Target.create "InstallTools" (fun _ ->
+Target.create "InstallPaket" (fun _ ->
+    if not (File.exists paketExe) then
+        DotNet.exec id "tool" "install --tool-path \".paket\" Paket --add-source https://api.nuget.org/v3/index.json"
+        |> ignore
+    else
+        printfn "paket already installed"
+)
+
+Target.create "InstallFunctionCoreTools" (fun _ ->
     if Environment.isWindows then
         try 
             funcCli "--version" "."
         with
             _ ->
             Npm.exec "install azure-functions-core-tools" id
-
-    if not (File.exists paketExe) then
-        DotNet.exec id "tool" "install --tool-path \".paket\" Paket --add-source https://api.nuget.org/v3/index.json"
-        |> ignore
-    else
-        printfn "paket already installed"
-
-    funcCli "--version" "."
-    azCli "--version"
 )
 
 Target.create "Deploy" (fun _ ->
+    funcCli "--version" "."
+    azCli "--version"
     funcCli (sprintf "azure functionapp publish %s" functionAppName) deployDir
     azCli (sprintf "functionapp config appsettings set GITHUB_REPO=%s GITHUB_USERNAME=%s GITHUB_PASSWORD=%s SLACK_WEBHOOK_URL=%s STORAGE_CONNECTION=%s" gitHubRepo gitHubUsername gitHubPassword slackWebhookUrl storageConnection)
 )
@@ -133,14 +126,12 @@ Target.create "DeployWithLocalSettings" (fun _ ->
 )
 
 "Clean" 
-    ==> "InstallTools"
+    ==> "InstallPaket"
     ==> "Publish"
     ==> "DeployWithLocalSettings"
 
-"InstallTools"
-    ==> "Build"
-
-"InstallTools"
+"InstallPaket"
+    ==> "InstallTools"
     ==> "Deploy"
 
 Target.runOrDefaultWithArguments "Build"
