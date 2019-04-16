@@ -47,7 +47,7 @@ let queues = [ "active-awesome-github-issue"; "active-awesome-github-commit"; "a
 
 let runTool cmd args workingDir =
     CreateProcess.fromRawCommandLine cmd args
-    // |> CreateProcess.withWorkingDirectory workingDir
+    |> CreateProcess.withWorkingDirectory workingDir
     |> CreateProcess.ensureExitCode
     |> Proc.run
     |> ignore
@@ -59,7 +59,7 @@ let azCli args =
     |> ignore
 let funcCli = 
     if Environment.isWindows then
-        runTool "func.CMD"
+        runTool (sprintf "%s\\npm\\node.CMD" <| System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData))
     else 
         runTool "func"
 
@@ -100,14 +100,14 @@ Target.create "InstallPaket" (fun _ ->
 Target.create "InstallFunctionCoreTools" (fun _ ->
     if Environment.isWindows then
         try 
-            funcCli "--version" "."
+            "." |> Path.getFullName |> funcCli "--version"
         with
             _ ->
             Npm.exec "install azure-functions-core-tools" id
 )
 
 Target.create "Deploy" (fun _ ->
-    funcCli "--version" "."
+    "." |> Path.getFullName |> funcCli "--version" 
     azCli "--version"
     funcCli (sprintf "azure functionapp publish %s" functionAppName) deployDir
     azCli (sprintf "functionapp config appsettings set GITHUB_REPO=%s GITHUB_USERNAME=%s GITHUB_PASSWORD=%s SLACK_WEBHOOK_URL=%s STORAGE_CONNECTION=%s" gitHubRepo gitHubUsername gitHubPassword slackWebhookUrl storageConnection)
