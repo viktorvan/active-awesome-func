@@ -59,7 +59,7 @@ let azCli args =
     |> ignore
 let funcCli = 
     if Environment.isWindows then
-        runTool (sprintf "%s\\npm\\node.CMD" <| System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData))
+        runTool (sprintf "%s\\npm\\func.CMD" <| System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData))
     else 
         runTool "func"
 
