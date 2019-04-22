@@ -1,4 +1,6 @@
 open Fake.Core
+open System
+open Fake.Core
 #r "paket:
 nuget FSharp.Core 4.5.4
 nuget Fake.Core.Target
@@ -30,7 +32,7 @@ let deployDir = Environment.environVarOrDefault "DEPLOY_DIR" (Path.getFullName "
 let azCliCommand = Environment.environVarOrDefault "AZ_CLI_FILE" (Path.getFullName "az")
 let functionsPath = Path.getFullName "./src/ActiveAwesome"
 let configuration =
-    match Environment.environVarOrDefault "BEEKEEP_CONFIGURATION" "release" with
+    match Environment.environVarOrDefault "ACTIVE_AWESOME_CONFIGURATION" "release" with
     | "debug" -> DotNet.BuildConfiguration.Debug
     | _ -> DotNet.BuildConfiguration.Release
 let resourceGroupName = Environment.environVarOrDefault "RESOURCEGROUP_NAME" "active-awesome"
@@ -43,6 +45,9 @@ let gitHubUsername = Environment.environVar "GITHUB_USERNAME"
 let gitHubPassword = Environment.environVar "GITHUB_PASSWORD" 
 let slackWebhookUrl = Environment.environVar "SLACK_WEBHOOK_URL" 
 let storageConnection = Environment.environVar "STORAGE_CONNECTION"
+let azureServicePrincipal = Environment.environVar "AZURE_SERVICE_PRINCIPAL"
+let azureServiceSecret = Environment.environVar "AZURE_SERVICE_SECRET"
+let azureTenant = Environment.environVar "AZURE_TENANT"
 let queues = [ "active-awesome-github-issue"; "active-awesome-github-commit"; "active-awesome-slack-response"; "active-awesome-slack-notification" ]
 
 let runTool cmd args workingDir =
@@ -109,6 +114,7 @@ Target.create "InstallFunctionCoreTools" (fun _ ->
 Target.create "Deploy" (fun _ ->
     "." |> Path.getFullName |> funcCli "--version" 
     azCli "--version"
+    (azureServicePrincipal, azureServiceSecret, azureTenant) |||> sprintf "login --service-principal -u %s -p %s --tenant %s" |> azCli
     funcCli (sprintf "azure functionapp publish %s" functionAppName) deployDir
     azCli (sprintf "functionapp config appsettings set GITHUB_REPO=%s GITHUB_USERNAME=%s GITHUB_PASSWORD=%s SLACK_WEBHOOK_URL=%s STORAGE_CONNECTION=%s" gitHubRepo gitHubUsername gitHubPassword slackWebhookUrl storageConnection)
 )
