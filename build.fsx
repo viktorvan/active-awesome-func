@@ -117,7 +117,7 @@ Target.create "AzureLogin" (fun _ ->
 
 Target.create "Deploy" (fun _ ->
     funcCli (sprintf "azure functionapp publish %s --force" functionAppName) deployDir
-    azCli (sprintf "functionapp config appsettings set GITHUB_REPO=%s GITHUB_USERNAME=%s GITHUB_PASSWORD=%s SLACK_WEBHOOK_URL=%s STORAGE_CONNECTION=%s" gitHubRepo gitHubUsername gitHubPassword slackWebhookUrl storageConnection)
+    azCli (sprintf "functionapp config appsettings set --name %s --settings GITHUB_REPO=%s GITHUB_USERNAME=%s GITHUB_PASSWORD=%s SLACK_WEBHOOK_URL=%s STORAGE_CONNECTION=%s" functionAppName gitHubRepo gitHubUsername gitHubPassword slackWebhookUrl storageConnection)
 )
 
 Target.create "DeployWithLocalSettings" (fun _ ->
