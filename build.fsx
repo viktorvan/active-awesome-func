@@ -116,7 +116,8 @@ Target.create "AzureLogin" (fun _ ->
 )
 
 Target.create "Deploy" (fun _ ->
-    funcCli (sprintf "azure functionapp publish %s --force" functionAppName) deployDir
+    funcCli "settings add FUNCTIONS_WORKER_RUNTIME dotnet" deployDir
+    funcCli (sprintf "azure functionapp publish %s" functionAppName) deployDir
     azCli (sprintf "functionapp config appsettings set --resource-group %s --name %s --settings GITHUB_REPO=%s GITHUB_USERNAME=%s GITHUB_PASSWORD=%s SLACK_WEBHOOK_URL=%s STORAGE_CONNECTION=%s" resourceGroupName functionAppName gitHubRepo gitHubUsername gitHubPassword slackWebhookUrl storageConnection)
 )
 
