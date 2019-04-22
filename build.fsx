@@ -111,10 +111,11 @@ Target.create "InstallFunctionCoreTools" (fun _ ->
             Npm.exec "install azure-functions-core-tools" id
 )
 
-Target.create "Deploy" (fun _ ->
-    "." |> Path.getFullName |> funcCli "--version" 
-    azCli "--version"
+Target.create "AzureLogin" (fun _ ->
     (azureServicePrincipal, azureServiceSecret, azureTenant) |||> sprintf "login --service-principal -u %s -p %s --tenant %s" |> azCli
+)
+
+Target.create "Deploy" (fun _ ->
     funcCli (sprintf "azure functionapp publish %s" functionAppName) deployDir
     azCli (sprintf "functionapp config appsettings set GITHUB_REPO=%s GITHUB_USERNAME=%s GITHUB_PASSWORD=%s SLACK_WEBHOOK_URL=%s STORAGE_CONNECTION=%s" gitHubRepo gitHubUsername gitHubPassword slackWebhookUrl storageConnection)
 )
@@ -125,13 +126,19 @@ Target.create "DeployWithLocalSettings" (fun _ ->
     funcCli (sprintf "azure functionapp publish %s --publish-local-settings" functionAppName) deployDir
 )
 
-"Clean" 
-    ==> "InstallPaket"
+"Clean"
+    ==> "Publish"
+
+"InstallPaket"
     ==> "Publish"
     ==> "DeployWithLocalSettings"
 
 "InstallPaket"
     ==> "InstallFunctionCoreTools"
+    ==> "AzureLogin"
     ==> "Deploy"
+
+"AzureLogin"
+    ==> "SetupAzureResources"
 
 Target.runOrDefaultWithArguments "Build"
