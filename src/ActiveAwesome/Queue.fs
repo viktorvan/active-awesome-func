@@ -3,6 +3,7 @@ module ActiveAwesome.Queue
 open Microsoft.WindowsAzure.Storage
 open Microsoft.WindowsAzure.Storage.Queue
 open ActiveAwesome.JsonHelper
+open FsToolkit.ErrorHandling
 
 type Queue =
     { EnqueueGitHubIssue : Tip -> Async<Result<unit, string>>

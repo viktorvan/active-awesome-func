@@ -2,11 +2,10 @@ module ActiveAwesome.GitHub
 
 open FSharp.Data
 open FSharp.Data.HttpRequestHeaders
-open FSharpPlus
-open Cvdm.ErrorHandling
 open ActiveAwesome
 open System
 open System.Text
+open FsToolkit.ErrorHandling
 
 type GitHubIssueJson = JsonProvider<"GitHubIssue.json">
 
@@ -42,8 +41,8 @@ let private createIssue gitHubApiUrl gitHubAuth tip =
 
     let issueJson =
         let username = tip.Username |> NotEmptyString.value
-        let url = tip.Url |> NotEmptyString.value
-        let title = sprintf "%s has added a new tip: %s" username url
+        let tipText = tip.Text |> NotEmptyString.value
+        let title = sprintf "%s has added a new tip: %s" username tipText
 
         let fullText = "Please move this tip from pending.MD to a more suitable place.\n"
         GitHubIssue(title, fullText).JsonValue.ToString()
@@ -56,7 +55,7 @@ let private createIssue gitHubApiUrl gitHubAuth tip =
                                              UserAgent "active-awesome-slack" ], body = TextRequest issueJson)
             return! parseWith GitHubCreateIssueResponseJson.Parse response
                     |> Result.map (fun r -> r.HtmlUrl)
-                    |> Result.bind (NotEmptyString.create "issueUrl")
+                    |> Result.bind (NotEmptyString.createWithName "issueUrl")
         with exn -> return! exn.ToString() |> Error
     }
 
@@ -71,8 +70,8 @@ let private parseWebHookNotification json =
                     |> Array.tryLast
                     |> Option.map (fun commit ->
                            sprintf "New tip from @%s!\n%s\n%s" commit.Author.Name commit.Message Settings.gitHubRepoUrl)
-                    |> Option.map (fun str -> NotEmptyString.create "commit msg" str)
-                    |> sequence
+                    |> Option.map (fun str -> NotEmptyString.createWithName "commit msg" str)
+                    |> Option.sequenceResult
         with exn -> return! exn.ToString() |> Error
     }
 
@@ -85,10 +84,9 @@ let private getFileFromRepo gitHubApiUrl gitHubAuth =
     let decodeBase64String str =
         result {
             try
-                return! str
+                return str
                         |> Convert.FromBase64String
                         |> Encoding.UTF8.GetString
-                        |> NotEmptyString.create "decoded base64 github file content"
             with exn -> return! exn.ToString() |> Error
         }
 
@@ -97,36 +95,37 @@ let private getFileFromRepo gitHubApiUrl gitHubAuth =
             let! response = Http.AsyncRequest(gitHubApiUrl,
                                               headers = [ Authorization gitHubAuth
                                                           UserAgent "active-awesome-slack" ])
-                            |> Async.map HttpResponse.ensureSuccessStatusCode
+                                 
             let! bodyJson = bodyAsString response
             let! parsed = parseWith FileContentResponseJson.Parse bodyJson
             let! content = parsed.Content |> decodeBase64String
-            let! fileSha = parsed.Sha |> NotEmptyString.create "File SHA"
+            let! fileSha = parsed.Sha |> NotEmptyString.createWithName "File SHA"
             return (content, fileSha)
         with exn -> return! exn.ToString() |> Error
     }
 
 let private addCommit gitHubApiUrl gitHubAuth tip =
     let gitHubContentUrl = sprintf "%s/contents/%s" gitHubApiUrl "pending.MD"
-    let tipUrl = tip.Url |> NotEmptyString.value
+    let tipText = tip.Text |> NotEmptyString.value
     let username = tip.Username |> NotEmptyString.value
     let encodeBase64 str = Encoding.UTF8.GetBytes(s = str) |> Convert.ToBase64String
     asyncResult {
-        let! (content, sha) = getFileFromRepo gitHubContentUrl gitHubAuth
-        let contentStr = NotEmptyString.value content
+        try 
+            let! (contentStr, sha) = getFileFromRepo gitHubContentUrl gitHubAuth
 
-        let newContent =
-            contentStr + (sprintf "- %s (added by %s)\n" tipUrl username)
-            |> encodeBase64
+            let newContent =
+                contentStr + (sprintf "- %s (added by %s)\n" tipText username)
+                |> encodeBase64
 
-        let committer = Committer(username, "active-awesome-slack@activesolution.se")
-        let json = UpdateContentRequest(tipUrl, committer, newContent, sha |> NotEmptyString.value).JsonValue.ToString()
-        return! Http.AsyncRequest(gitHubContentUrl, httpMethod = "PUT",
-                                  headers = [ ContentType HttpContentTypes.Json
-                                              Authorization gitHubAuth
-                                              UserAgent "active-awesome-slack" ], body = TextRequest json)
-                |> Async.map HttpResponse.ensureSuccessStatusCode
-                |> Async.Ignore
+            let committer = Committer(username, "active-awesome-slack@activesolution.se")
+            let json = UpdateContentRequest(tipText, committer, newContent, sha |> NotEmptyString.value).JsonValue.ToString()
+            return! Http.AsyncRequest(gitHubContentUrl, httpMethod = "PUT",
+                                      headers = [ ContentType HttpContentTypes.Json
+                                                  Authorization gitHubAuth
+                                                  UserAgent "active-awesome-slack" ], 
+                                                  body = TextRequest json)
+                    |> Async.Ignore
+        with exn -> return! exn.ToString() |> Error
     }
 
 let gitHub gitHubApiUrl gitHubAuth =

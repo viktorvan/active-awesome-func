@@ -8,6 +8,7 @@ open System
 open Microsoft.Extensions.Logging
 open ActiveAwesome.JsonHelper
 open ActiveAwesome
+open FsToolkit.ErrorHandling
 
 let gitHub = GitHub.gitHub Settings.gitHubApiUrl Settings.gitHubAuth
 let slack = Slack.slack Settings.slackWebhookUrl Settings.gitHubRepoUrl
@@ -42,6 +43,16 @@ let runCreateGitHubIssue ([<QueueTrigger("active-awesome-github-issue")>] queueI
                   let! issueUrl = gitHub.CreateIssue tip
                   return! queue.EnqueueSlackResponse(tip, issueUrl) } |> Async.runAsTask log "CreateGitHubIssue"
 
+[<FunctionName("HandleCreateGitHubIssueError")>]
+let handleCommitError ([<QueueTrigger("active-awesome-github-issue-poison")>] queueItem : string, log : ILogger) =
+    asyncResult { let! tip = deserialize queueItem
+                  sprintf "Handling error from CreateGitHubIssue for queueItem %s" queueItem |> log.LogInformation
+                  let! errorMsg = NotEmptyString.createWithName "errorMsg" "Failed to create github issue"
+                  match tip.SlackResponseUrl with
+                  | Some url ->
+                      return! slack.RespondWithError url errorMsg 
+                  | None -> return () } |> Async.runAsTask log "HandleCreateGitHubIssueError"
+
 [<FunctionName("CreateGitHubCommit")>]
 let runCreateGitHubCommit ([<QueueTrigger("active-awesome-github-commit")>] queueItem : string, log : ILogger) =
     asyncResult { let! tip = deserialize queueItem
@@ -49,10 +60,23 @@ let runCreateGitHubCommit ([<QueueTrigger("active-awesome-github-commit")>] queu
                   let! notification = slack.ParseWebHookNotification tip
                   return! queue.EnqueueSlackNotification notification } |> Async.runAsTask log "CreateGitHubCommit"
 
+[<FunctionName("HandleCreateGitHubCommitError")>]
+let handleIssueError ([<QueueTrigger("active-awesome-github-commit-poison")>] queueItem : string, log : ILogger) =
+    asyncResult { let! tip = deserialize queueItem
+                  sprintf "Handling error from CreateGitHubCommit for queueItem %s" queueItem |> log.LogInformation
+                  let! errorMsg = NotEmptyString.createWithName "errorMsg" "Failed to create github commit"
+                  match tip.SlackResponseUrl with
+                  | Some url -> 
+                      return! slack.RespondWithError url errorMsg 
+                  | None -> return () } |> Async.runAsTask log "HandleCreateGitHubCommitError"
+
 [<FunctionName("RespondToSlack")>]
 let runRespondToSlack ([<QueueTrigger("active-awesome-slack-response")>] queueItem : string, log : ILogger) =
     asyncResult { let! (tip, issueUrl) = deserialize queueItem
-                  return! slack.RespondToSlack tip issueUrl } |> Async.runAsTask log "RespondToSlack"
+                  match tip.SlackResponseUrl with
+                  | Some url ->
+                      return! slack.RespondIssueCreated url issueUrl 
+                  | None -> return () } |> Async.runAsTask log "RespondToSlack"
 
 [<FunctionName("GitHubWebHook")>]
 let runGitHubWebHook ([<HttpTrigger(Extensions.Http.AuthorizationLevel.Anonymous, "post")>] req : HttpRequest,

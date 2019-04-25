@@ -1,13 +1,11 @@
 RESTRICTION: == netcoreapp2.1
 NUGET
   remote: https://api.nuget.org/v3/index.json
-    Cvdm.ErrorHandling (2.0)
-      FSharp.Core (>= 4.1.17)
     FSharp.Core (4.6.2)
     FSharp.Data (3.0.1)
       FSharp.Core (>= 4.3.4)
-    FSharpPlus (1.0)
-      FSharp.Core (>= 4.3.4)
+    FsToolkit.ErrorHandling (1.0)
+      FSharp.Core (>= 4.6.2)
     Microsoft.AspNet.WebApi.Client (5.2.7)
       NewtonSoft.json (>= 10.0.1)
       Newtonsoft.Json.Bson (>= 1.0.1)

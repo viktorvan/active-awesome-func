@@ -3,6 +3,7 @@ module ActiveAwesome.Slack
 open FSharp.Data
 open ActiveAwesome.JsonHelper
 open FSharp.Data.HttpRequestHeaders
+open FsToolkit.ErrorHandling
 
 type Attachment =
     { text : string }
@@ -12,27 +13,34 @@ type SlackResponse =
       attachments : Attachment [] }
 
 type Slack =
-    { RespondToSlack : Tip -> NotEmptyString -> Async<Result<unit, string>>
+    { RespondIssueCreated : SlackResponseUrl -> IssueUrl -> Async<Result<unit, string>>
+      RespondWithError : SlackResponseUrl -> NotEmptyString -> Async<Result<unit, string>>
       SendSlackNotification : NotEmptyString -> Async<Result<unit, string>>
       ParseWebHookNotification : Tip -> Result<NotEmptyString, string> }
 
-let respondToSlack tip issueUrl =
+let respondToSlack url json =
+    asyncResult {
+        try
+            return! Http.AsyncRequest
+                        (url |> NotEmptyString.value, headers = [ ContentType HttpContentTypes.Json ],
+                         body = TextRequest json)
+                    |> Async.Ignore
+        with exn -> return! exn.ToString() |> Error
+    }
+let private respondIssueCreated slackResponseUrl issueUrl =
     let response =
         let issueUrlStr = NotEmptyString.value issueUrl
         { text = "An issue has been created for your new tip"
           attachments = [| { text = issueUrlStr } |] }
-
-    let slackResponseUrl = tip.SlackResponseUrl |> NotEmptyString.value
     let json = response |> serialize
-    asyncResult {
-        try
-            return! Http.AsyncRequest
-                        (slackResponseUrl, headers = [ ContentType HttpContentTypes.Json ],
-                         body = TextRequest json)
-                    |> Async.map HttpResponse.ensureSuccessStatusCode
-                    |> Async.Ignore
-        with exn -> return! exn.ToString() |> Error
-    }
+    respondToSlack slackResponseUrl json
+
+let respondWithError responseUrl errorMsg =
+    let response =
+        { text = errorMsg |> NotEmptyString.value |> sprintf "Something went wrong when processing your tip: %s"
+          attachments = [| |] }
+    let json = response |> serialize
+    respondToSlack responseUrl json
 
 let private sendSlackNotification slackWebHookUrl notification =
     let notification = NotEmptyString.value notification
@@ -45,18 +53,18 @@ let private sendSlackNotification slackWebHookUrl notification =
             return! Http.AsyncRequest
                         (slackWebHookUrl, headers = [ ContentType HttpContentTypes.Json ],
                          body = TextRequest notificationJson)
-                    |> Async.map HttpResponse.ensureSuccessStatusCode
                     |> Async.Ignore
         with exn -> return! exn.ToString() |> Error
     }
 
 let private parseWebHookNotification gitHubRepoUrl tip =
     let username = tip.Username |> NotEmptyString.value
-    let url = tip.Url |> NotEmptyString.value
+    let url = tip.Text |> NotEmptyString.value
     sprintf "New tip from @%s!\n%s\n%s" username url gitHubRepoUrl
-    |> NotEmptyString.create "slack notification"
+    |> NotEmptyString.createWithName "slack notification"
 
 let slack slackWebHookUrl gitHubRepoUrl =
-    { RespondToSlack = respondToSlack
+    { RespondIssueCreated = respondIssueCreated
+      RespondWithError = respondWithError
       SendSlackNotification = sendSlackNotification slackWebHookUrl
       ParseWebHookNotification = parseWebHookNotification gitHubRepoUrl }

@@ -1,6 +1,3 @@
-open Fake.Core
-open System
-open Fake.Core
 #r "paket:
 nuget FSharp.Core 4.5.4
 nuget Fake.Core.Target
@@ -23,6 +20,9 @@ open Fake.DotNet
 open Fake.IO
 open Fake.IO.Globbing.Operators
 open Fake.JavaScript
+open Fake.Core
+open System
+open Fake.Core
 
 
 let paketFile = if Environment.isWindows then "paket.exe" else "paket"

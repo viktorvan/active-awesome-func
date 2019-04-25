@@ -8,6 +8,8 @@ open System.IO
 open System.Web
 open Microsoft.Extensions.Logging
 open System.Threading.Tasks
+open System.Text
+open FsToolkit.ErrorHandling
 
 exception AwesomeFuncException of string
 
@@ -49,17 +51,23 @@ module HttpRequest =
             with exn -> return! exn.ToString() |> Error
         }
 
-module HttpResponse =
-    let ensureSuccessStatusCode (response : FSharp.Data.HttpResponse) =
-        let isError = response.StatusCode < 200 && response.StatusCode >= 300
-        if isError then "HttpRequest failed" |> Error
-        else Ok response
+module String =
+    let stripDiacritics (text: string) =
+        let getUnicodeCategory (c:char) = Globalization.CharUnicodeInfo.GetUnicodeCategory c
+        let isNonSpacingMark cat = cat <> Globalization.UnicodeCategory.NonSpacingMark
+
+        let normalizedString = text.Normalize NormalizationForm.FormD
+        let sb = StringBuilder()
+        [ for c in normalizedString -> c ]
+        |> List.filter (getUnicodeCategory >> isNonSpacingMark)
+        |> List.iter (sb.Append >> ignore)
+        sb.ToString()
 
 [<JsonObject(MemberSerialization = MemberSerialization.Fields)>]
 type NotEmptyString = private NotEmptyString of string
 
 module NotEmptyString =
-    let create name str =
+    let createWithName name str =
         if String.IsNullOrWhiteSpace str then
             name
             |> sprintf "%s cannot be empty"
@@ -76,20 +84,23 @@ type NotEmptyString with
 
 type IssueUrl = NotEmptyString
 
+type SlackResponseUrl = NotEmptyString
 type Tip =
-    { Url : NotEmptyString
+    { Text : NotEmptyString
       Username : NotEmptyString
-      SlackResponseUrl : NotEmptyString }
+      SlackResponseUrl : SlackResponseUrl option }
 
 module Tip =
     let fromHttpRequest (req : HttpRequest) =
+        let validateUri uri = if Uri.IsWellFormedUriString(uri, UriKind.Absolute) then Some uri else None
         asyncResult {
             let! bodyString = req |> HttpRequest.bodyAsString
             let query = bodyString |> HttpUtility.ParseQueryString
-            let! url = query.["text"] |> NotEmptyString.create "url"
-            let! username = query.["user_name"] |> NotEmptyString.create "username"
-            let! responseUrl = query.["response_url"] |> NotEmptyString.create "response_url"
-            return { Url = url
+            let! text = query.["text"] |> String.stripDiacritics |> NotEmptyString.createWithName "tip text"
+            let! username = query.["user_name"] |> NotEmptyString.createWithName "username"
+            let! responseUrl = query.["response_url"] |> validateUri |> Option.map (NotEmptyString.createWithName "response_url") |> Option.sequenceResult
+            
+            return { Text = text
                      Username = username
                      SlackResponseUrl = responseUrl }
         }
