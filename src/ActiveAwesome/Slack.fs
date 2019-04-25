@@ -18,7 +18,7 @@ type Slack =
       SendSlackNotification : NotEmptyString -> Async<Result<unit, string>>
       ParseWebHookNotification : Tip -> Result<NotEmptyString, string> }
 
-let respondToSlack url json =
+let private respondToSlack url json =
     asyncResult {
         try
             return! Http.AsyncRequest
@@ -27,6 +27,7 @@ let respondToSlack url json =
                     |> Async.Ignore
         with exn -> return! exn.ToString() |> Error
     }
+
 let private respondIssueCreated slackResponseUrl issueUrl =
     let response =
         let issueUrlStr = NotEmptyString.value issueUrl
@@ -35,7 +36,7 @@ let private respondIssueCreated slackResponseUrl issueUrl =
     let json = response |> serialize
     respondToSlack slackResponseUrl json
 
-let respondWithError responseUrl errorMsg =
+let private respondWithError responseUrl errorMsg =
     let response =
         { text = errorMsg |> NotEmptyString.value |> sprintf "Something went wrong when processing your tip: %s"
           attachments = [| |] }

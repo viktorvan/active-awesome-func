@@ -23,42 +23,15 @@ let private enqueue azureStorageConnectionString name msg =
         try
             let! queue = getQueue azureStorageConnectionString name
             return! msg
+                    |> serialize
                     |> CloudQueueMessage
                     |> queue.AddMessageAsync
                     |> Async.AwaitTask
         with exn -> return! exn.ToString() |> Error
     }
 
-let private enqueueGitHubIssue azureStorageConnectionString tip =
-    async {
-        return! tip
-                |> serialize
-                |> enqueue azureStorageConnectionString "active-awesome-github-issue"
-    }
-
-let private enqueueGitHubCommit azureStorageConnectionString tip =
-    async {
-        return! tip
-                |> serialize
-                |> enqueue azureStorageConnectionString "active-awesome-github-commit"
-    }
-
-let private enqueueSlackResponse azureStorageConnectionString item =
-    async {
-        return! item
-                |> serialize
-                |> enqueue azureStorageConnectionString "active-awesome-slack-response"
-    }
-
-let private enqueueSlackNotification azureStorageConnectionString item =
-    async {
-        return! item
-                |> serialize
-                |> enqueue azureStorageConnectionString "active-awesome-slack-notification"
-    }
-
 let queue azureStorageConnectionString =
-    { EnqueueGitHubIssue = enqueueGitHubIssue azureStorageConnectionString
-      EnqueueGitHubCommit = enqueueGitHubCommit azureStorageConnectionString
-      EnqueueSlackResponse = enqueueSlackResponse azureStorageConnectionString
-      EnqueueSlackNotification = enqueueSlackNotification azureStorageConnectionString }
+    { EnqueueGitHubIssue = enqueue azureStorageConnectionString "active-awesome-github-issue" 
+      EnqueueGitHubCommit = enqueue azureStorageConnectionString "active-awesome-github-commit"
+      EnqueueSlackResponse = enqueue azureStorageConnectionString "active-awesome-slack-response"
+      EnqueueSlackNotification = enqueue azureStorageConnectionString "active-awesome-slack-notification" }
